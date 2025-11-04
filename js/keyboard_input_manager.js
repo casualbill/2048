@@ -72,7 +72,13 @@ KeyboardInputManager.prototype.listen = function () {
   this.bindButtonPress(".retry-button", this.restart);
   this.bindButtonPress(".restart-button", this.restart);
   this.bindButtonPress(".keep-playing-button", this.keepPlaying);
+  this.bindButtonPress(".undo-button", this.undo);
+  this.bindButtonPress(".remove-button", this.remove);
+  this.bindButtonPress(".swap-button", this.swap);
 
+  // Add tile click event listener
+  var gameContainer = document.getElementsByClassName("game-container")[0];
+  gameContainer.addEventListener("click", this.handleTileClick.bind(this));
   // Respond to swipe events
   var touchStartClientX, touchStartClientY;
   var gameContainer = document.getElementsByClassName("game-container")[0];
@@ -137,8 +143,27 @@ KeyboardInputManager.prototype.keepPlaying = function (event) {
   this.emit("keepPlaying");
 };
 
-KeyboardInputManager.prototype.bindButtonPress = function (selector, fn) {
-  var button = document.querySelector(selector);
-  button.addEventListener("click", fn.bind(this));
-  button.addEventListener(this.eventTouchend, fn.bind(this));
+KeyboardInputManager.prototype.undo = function (event) {
+  event.preventDefault();
+  this.emit("undo");
+};
+
+KeyboardInputManager.prototype.remove = function (event) {
+  event.preventDefault();
+  this.emit("remove");
+};
+
+KeyboardInputManager.prototype.swap = function (event) {
+  event.preventDefault();
+  this.emit("swap");
+};
+
+KeyboardInputManager.prototype.handleTileClick = function (event) {
+  var tile = event.target.closest(".tile");
+  if (tile) {
+    var positionClass = tile.classList[2];
+    var x = parseInt(positionClass.split("-")[2]) - 1;
+    var y = parseInt(positionClass.split("-")[3]) - 1;
+    this.emit("tileClick", { x: x, y: y });
+  }
 };
