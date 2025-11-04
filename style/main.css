@@ -510,7 +510,60 @@ hr {
 .above-game:after {
   content: "";
   display: block;
-  clear: both; }
+  clear: both;
+}
+
+.undo-button, .remove-button, .swap-button {
+  display: inline-block;
+  background: #8f7a66;
+  border-radius: 3px;
+  padding: 0 20px;
+  text-decoration: none;
+  color: #f9f6f2;
+  height: 40px;
+  line-height: 42px;
+  margin-left: 9px;
+  cursor: pointer;
+}
+
+.undo-button:hover, .remove-button:hover, .swap-button:hover {
+  background: #7f6e5e;
+}
+
+.undo-button.disabled, .remove-button.disabled, .swap-button.disabled {
+  background: #bbada0;
+  cursor: not-allowed;
+}
+
+.tile.highlighted {
+  opacity: 0.5;
+  animation: highlight 0.5s ease-in-out;
+}
+
+@keyframes highlight {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.1); }
+  100% { transform: scale(1); }
+}
+
+.tile.shaking {
+  animation: shake 0.5s ease-in-out;
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-5px); }
+  75% { transform: translateX(5px); }
+}
+
+.tile.fading-out {
+  animation: fadeOut 0.5s ease-in-out forwards;
+}
+
+@keyframes fadeOut {
+  0% { opacity: 1; }
+  100% { opacity: 0; }
+}
 
 .game-intro {
   float: left;
@@ -529,31 +582,6 @@ hr {
   display: block;
   text-align: center;
   float: right; }
-
-.game-explanation {
-  margin-top: 50px; }
-
-@media screen and (max-width: 520px) {
-  html, body {
-    font-size: 15px; }
-
-  body {
-    margin: 20px 0;
-    padding: 0 20px; }
-
-  h1.title {
-    font-size: 27px;
-    margin-top: 15px; }
-
-  .container {
-    width: 280px;
-    margin: 0 auto; }
-
-  .score-container, .best-container {
-    margin-top: 0;
-    padding: 15px 10px;
-    min-width: 40px; }
-
   .heading {
     margin-bottom: 10px; }
 

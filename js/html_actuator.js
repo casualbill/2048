@@ -3,7 +3,6 @@ function HTMLActuator() {
   this.scoreContainer   = document.querySelector(".score-container");
   this.bestContainer    = document.querySelector(".best-container");
   this.messageContainer = document.querySelector(".game-message");
-
   this.score = 0;
 }
 
@@ -24,7 +23,6 @@ HTMLActuator.prototype.actuate = function (grid, metadata) {
     self.updateScore(metadata.score);
     self.updateBestScore(metadata.bestScore);
 
-    if (metadata.terminated) {
       if (metadata.over) {
         self.message(false); // You lose
       } else if (metadata.won) {
@@ -34,8 +32,6 @@ HTMLActuator.prototype.actuate = function (grid, metadata) {
 
   });
 };
-
-// Continues the game (both restart and keep playing)
 HTMLActuator.prototype.continueGame = function () {
   this.clearMessage();
 };
@@ -111,17 +107,50 @@ HTMLActuator.prototype.updateScore = function (score) {
 
   this.scoreContainer.textContent = this.score;
 
-  if (difference > 0) {
+  if (difference !== 0) {
     var addition = document.createElement("div");
+    addition.textContent = (difference > 0 ? "+" : "-") + Math.abs(difference);
     addition.classList.add("score-addition");
-    addition.textContent = "+" + difference;
-
     this.scoreContainer.appendChild(addition);
   }
 };
 
 HTMLActuator.prototype.updateBestScore = function (bestScore) {
   this.bestContainer.textContent = bestScore;
+};
+
+HTMLActuator.prototype.showScoreChange = function(value) {
+  var addition = document.createElement("div");
+  addition.textContent = (value > 0 ? "+" : "") + value;
+  addition.classList.add("score-addition");
+  this.scoreContainer.appendChild(addition);
+};
+
+HTMLActuator.prototype.addTileClass = function(tile, className) {
+  var tileElement = this.getTileElement(tile);
+  if (tileElement) {
+    tileElement.classList.add(className);
+  }
+};
+
+HTMLActuator.prototype.removeTileClass = function(tile, className) {
+  var tileElement = this.getTileElement(tile);
+  if (tileElement) {
+    tileElement.classList.remove(className);
+  }
+};
+
+HTMLActuator.prototype.getTileElement = function(tile) {
+  var tiles = this.tileContainer.querySelectorAll(".tile");
+  for (var i = 0; i < tiles.length; i++) {
+    var element = tiles[i];
+    var x = parseInt(element.classList[2].split("-")[2]) - 1;
+    var y = parseInt(element.classList[2].split("-")[3]) - 1;
+    if (x === tile.x && y === tile.y) {
+      return element;
+    }
+  }
+  return null;
 };
 
 HTMLActuator.prototype.message = function (won) {

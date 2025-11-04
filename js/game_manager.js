@@ -5,13 +5,15 @@ function GameManager(size, InputManager, Actuator, StorageManager) {
   this.actuator       = new Actuator;
 
   this.startTiles     = 2;
-
-  this.inputManager.on("move", this.move.bind(this));
   this.inputManager.on("restart", this.restart.bind(this));
   this.inputManager.on("keepPlaying", this.keepPlaying.bind(this));
+  this.inputManager.on("undo", this.undo.bind(this));
+  this.inputManager.on("remove", this.toggleRemoveMode.bind(this));
+  this.inputManager.on("swap", this.toggleSwapMode.bind(this));
+  this.inputManager.on("tileClick", this.handleTileClick.bind(this));
 
   this.setup();
-}
+};
 
 // Restart the game
 GameManager.prototype.restart = function () {
@@ -20,15 +22,157 @@ GameManager.prototype.restart = function () {
   this.setup();
 };
 
-// Keep playing after winning (allows going over 2048)
-GameManager.prototype.keepPlaying = function () {
-  this.keepPlaying = true;
-  this.actuator.continueGame(); // Clear the game won/lost message
-};
-
 // Return true if the game is lost, or has won and the user hasn't kept playing
 GameManager.prototype.isGameTerminated = function () {
   return this.over || (this.won && !this.keepPlaying);
+};
+
+// Undo the last move
+GameManager.prototype.undo = function () {
+  if (this.undoCount <= 0 || this.history.length === 0) {
+    return;
+  }
+
+  // Get the last state from history
+  var lastState = this.history.pop();
+  
+  // Calculate the score difference
+  var scoreDiff = this.score - lastState.score;
+  
+  // Restore the state
+  this.grid = new Grid(lastState.grid.size, lastState.grid.cells);
+  this.score = lastState.score;
+  this.over = lastState.over;
+  this.won = lastState.won;
+  this.keepPlaying = lastState.keepPlaying;
+  
+  // Decrement undo count
+  this.undoCount--;
+  
+  // Update the actuator with the restored state
+  this.actuate();
+  
+  // If score decreased, show a minus animation
+  if (scoreDiff > 0) {
+    this.actuator.showScoreChange(-scoreDiff);
+  }
+};
+
+// Toggle remove mode
+GameManager.prototype.toggleRemoveMode = function () {
+  if (this.removeCount <= 0) {
+    return;
+  }
+
+  this.removeMode = !this.removeMode;
+  this.swapMode = false; // Ensure only one mode is active at a time
+  this.selectedTile = null;
+
+  // Update the actuator with the new mode state
+  this.actuate();
+};
+
+// Toggle swap mode
+GameManager.prototype.toggleSwapMode = function () {
+  if (this.swapCount <= 0) {
+    return;
+  }
+
+  this.swapMode = !this.swapMode;
+  this.removeMode = false; // Ensure only one mode is active at a time
+  this.selectedTile = null;
+
+  // Update the actuator with the new mode state
+  this.actuate();
+};
+
+// Handle tile click based on current mode
+GameManager.prototype.handleTileClick = function (position) {
+  if (this.removeMode) {
+    this.removeTile(position);
+  } else if (this.swapMode) {
+    this.handleSwapSelection(position);
+  }
+};
+
+// Remove a tile from the grid
+GameManager.prototype.removeTile = function (position) {
+  if (this.removeCount <= 0) {
+    return;
+  }
+
+  var tile = this.grid.cellContent(position);
+  if (!tile) {
+    return;
+  }
+
+  // Add fade-out class to the tile
+  this.actuator.addTileClass(tile, 'fading-out');
+
+  // Remove the tile after the animation completes
+  var self = this;
+  setTimeout(function() {
+    self.grid.removeTile(tile);
+    self.removeCount--;
+    self.removeMode = false;
+    self.actuate();
+  }, 500);
+};
+
+// Handle tile selection for swapping
+GameManager.prototype.handleSwapSelection = function (position) {
+  if (this.swapCount <= 0) {
+    return;
+  }
+
+  var tile = this.grid.cellContent(position);
+  if (!tile) {
+    return;
+  }
+
+  if (!this.selectedTile) {
+    // First tile selected
+    this.selectedTile = tile;
+    this.actuator.addTileClass(tile, 'shaking');
+    this.actuate();
+  } else if (this.selectedTile === tile) {
+    // Deselect the tile if clicked again
+    this.actuator.removeTileClass(tile, 'shaking');
+    this.selectedTile = null;
+    this.actuate();
+  } else {
+    // Second tile selected, perform swap
+    this.swapTiles(this.selectedTile, tile);
+  }
+};
+
+// Swap two tiles on the grid
+GameManager.prototype.swapTiles = function (tile1, tile2) {
+  // Save positions for animation
+  var position1 = { x: tile1.x, y: tile1.y };
+  var position2 = { x: tile2.x, y: tile2.y };
+
+  // Update tile positions
+  this.grid.cells[tile1.x][tile1.y] = tile2;
+  this.grid.cells[tile2.x][tile2.y] = tile1;
+  
+  tile1.updatePosition(position2);
+  tile2.updatePosition(position1);
+
+  // Add moving class to both tiles
+  this.actuator.addTileClass(tile1, 'moving');
+  this.actuator.addTileClass(tile2, 'moving');
+
+  // Update UI after animation completes
+  var self = this;
+  setTimeout(function() {
+    self.actuator.removeTileClass(tile1, 'shaking moving');
+    self.actuator.removeTileClass(tile2, 'moving');
+    self.selectedTile = null;
+    self.swapCount--;
+    self.swapMode = false;
+    self.actuate();
+  }, 300);
 };
 
 // Set up the game
@@ -53,6 +197,14 @@ GameManager.prototype.setup = function () {
     // Add the initial tiles
     this.addStartTiles();
   }
+
+  this.undoCount = 3;
+  this.removeCount = 2;
+  this.swapCount = 2;
+  this.history = [];
+  this.removeMode = false;
+  this.swapMode = false;
+  this.selectedTile = null;
 
   // Update the actuator
   this.actuate();
@@ -95,17 +247,20 @@ GameManager.prototype.actuate = function () {
     bestScore:  this.storageManager.getBestScore(),
     terminated: this.isGameTerminated()
   });
-
 };
 
-// Represent the current game as an object
+// Serialize the current game state
 GameManager.prototype.serialize = function () {
   return {
     grid:        this.grid.serialize(),
     score:       this.score,
     over:        this.over,
     won:         this.won,
-    keepPlaying: this.keepPlaying
+    keepPlaying: this.keepPlaying,
+    undoCount:   this.undoCount,
+    removeCount: this.removeCount,
+    swapCount:   this.swapCount,
+    history:     this.history
   };
 };
 
@@ -141,6 +296,9 @@ GameManager.prototype.move = function (direction) {
 
   // Save the current tile positions and remove merger information
   this.prepareTiles();
+
+  // Save current state to history before making any moves
+  var currentState = this.serialize();
 
   // Traverse the grid in the right direction and move tiles
   traversals.x.forEach(function (x) {
@@ -180,6 +338,8 @@ GameManager.prototype.move = function (direction) {
   });
 
   if (moved) {
+    // Only save to history if the move actually changed the grid
+    this.history.push(currentState);
     this.addRandomTile();
 
     if (!this.movesAvailable()) {
@@ -204,7 +364,7 @@ GameManager.prototype.getVector = function (direction) {
 };
 
 // Build a list of positions to traverse in the right order
-GameManager.prototype.buildTraversals = function (vector) {
+GameManager.prototype.buildTraversals = function(vector) {
   var traversals = { x: [], y: [] };
 
   for (var pos = 0; pos < this.size; pos++) {
@@ -219,7 +379,8 @@ GameManager.prototype.buildTraversals = function (vector) {
   return traversals;
 };
 
-GameManager.prototype.findFarthestPosition = function (cell, vector) {
+// Find the farthest position a tile can move to in a direction
+GameManager.prototype.findFarthestPosition = function(cell, vector) {
   var previous;
 
   // Progress towards the vector direction until an obstacle is found
@@ -235,14 +396,14 @@ GameManager.prototype.findFarthestPosition = function (cell, vector) {
   };
 };
 
+// Check for available moves
 GameManager.prototype.movesAvailable = function () {
   return this.grid.cellsAvailable() || this.tileMatchesAvailable();
 };
 
-// Check for available matches between tiles (more expensive check)
+// Check for available tile matches
 GameManager.prototype.tileMatchesAvailable = function () {
   var self = this;
-
   var tile;
 
   for (var x = 0; x < this.size; x++) {
@@ -253,7 +414,6 @@ GameManager.prototype.tileMatchesAvailable = function () {
         for (var direction = 0; direction < 4; direction++) {
           var vector = self.getVector(direction);
           var cell   = { x: x + vector.x, y: y + vector.y };
-
           var other  = self.grid.cellContent(cell);
 
           if (other && other.value === tile.value) {
