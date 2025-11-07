@@ -49,11 +49,22 @@ KeyboardInputManager.prototype.listen = function () {
     65: 3  // A
   };
 
-  // Respond to direction keys
+  // Respond to direction keys - QWEASD for hexagonal grid
   document.addEventListener("keydown", function (event) {
     var modifiers = event.altKey || event.ctrlKey || event.metaKey ||
                     event.shiftKey;
-    var mapped    = map[event.which];
+    
+    // Q:左上(81), W:上(87), E:右上(69), A:左下(65), S:下(83), D:右下(68)
+    var mapped;
+    switch(event.which) {
+      case 81: mapped = 4; break; // Q - 左上
+      case 87: mapped = 0; break; // W - 上
+      case 69: mapped = 5; break; // E - 右上
+      case 65: mapped = 6; break; // A - 左下
+      case 83: mapped = 2; break; // S - 下
+      case 68: mapped = 7; break; // D - 右下
+      default: mapped = undefined;
+    }
 
     if (!modifiers) {
       if (mapped !== undefined) {

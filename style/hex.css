@@ -1,0 +1,112 @@
+/* Hexagonal grid styles */
+.hex-grid-container {
+  position: relative;
+  margin: 50px auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.hex-row {
+  display: flex;
+  margin-bottom: -20px; /* Adjust based on hex size */
+}
+
+.hex-cell {
+  width: 80px;
+  height: 92px;
+  background: #bbada0;
+  margin: 0 5px;
+  clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+  position: relative;
+}
+
+.hex-tile {
+  width: 70px;
+  height: 82px;
+  background: #eee4da;
+  clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+  position: absolute;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  font-weight: bold;
+  color: #776e65;
+  transition: all 0.3s ease;
+}
+
+/* Hex tile colors */
+.hex-tile-2 {
+  background: #eee4da;
+}
+
+.hex-tile-4 {
+  background: #ede0c8;
+}
+
+.hex-tile-8 {
+  background: #f2b179;
+  color: #f9f6f2;
+}
+
+.hex-tile-16 {
+  background: #f59563;
+  color: #f9f6f2;
+}
+
+.hex-tile-32 {
+  background: #f67c5f;
+  color: #f9f6f2;
+}
+
+.hex-tile-64 {
+  background: #f65e3b;
+  color: #f9f6f2;
+}
+
+.hex-tile-128 {
+  background: #edcf72;
+  color: #f9f6f2;
+  box-shadow: 0 0 30px 10px rgba(243, 215, 116, 0.2380952380952381), inset 0 0 0 1px rgba(255, 255, 255, 0.14285714285714285);
+}
+
+.hex-tile-256 {
+  background: #edcc61;
+  color: #f9f6f2;
+  box-shadow: 0 0 30px 10px rgba(243, 215, 116, 0.31746031746031744), inset 0 0 0 1px rgba(255, 255, 255, 0.19047619047619047);
+}
+
+.hex-tile-512 {
+  background: #ecc850;
+  color: #f9f6f2;
+  box-shadow: 0 0 30px 10px rgba(243, 215, 116, 0.3968253968253968), inset 0 0 0 1px rgba(255, 255, 255, 0.2380952380952381);
+}
+
+.hex-tile-1024 {
+  background: #edc22e;
+  color: #f9f6f2;
+  box-shadow: 0 0 30px 10px rgba(243, 215, 116, 0.47619047619047616), inset 0 0 0 1px rgba(255, 255, 255, 0.2857142857142857);
+}
+
+.hex-tile-2048 {
+  background: #edc20f;
+  color: #f9f6f2;
+  box-shadow: 0 0 30px 10px rgba(243, 215, 116, 0.5555555555555556), inset 0 0 0 1px rgba(255, 255, 255, 0.3333333333333333);
+}
+
+/* Board size slider */
+.board-size {
+  margin: 10px 0;
+  text-align: center;
+}
+
+#size-slider {
+  width: 200px;
+  margin: 0 10px;
+}
+
+#size-value {
+  font-weight: bold;
+  color: #776e65;
+}

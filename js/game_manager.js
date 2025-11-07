@@ -126,9 +126,9 @@ GameManager.prototype.moveTile = function (tile, cell) {
   tile.updatePosition(cell);
 };
 
-// Move tiles on the grid in the specified direction
+// Move tiles on the grid in the specified direction for hexagonal grid
+// Directions: 0: up (W), 2: down (S), 4: left-up (Q), 5: right-up (E), 6: left-down (A), 7: right-down (D)
 GameManager.prototype.move = function (direction) {
-  // 0: up, 1: right, 2: down, 3: left
   var self = this;
 
   if (this.isGameTerminated()) return; // Don't do anything if the game's over
@@ -143,8 +143,9 @@ GameManager.prototype.move = function (direction) {
   this.prepareTiles();
 
   // Traverse the grid in the right direction and move tiles
-  traversals.x.forEach(function (x) {
-    traversals.y.forEach(function (y) {
+  traversals.y.forEach(function (y) {
+    var row = self.grid.cells[y];
+    for (var x = 0; x < row.length; x++) {
       cell = { x: x, y: y };
       tile = self.grid.cellContent(cell);
 
@@ -176,7 +177,7 @@ GameManager.prototype.move = function (direction) {
           moved = true; // The tile moved from its original cell!
         }
       }
-    });
+    }
   });
 
   if (moved) {
@@ -190,30 +191,33 @@ GameManager.prototype.move = function (direction) {
   }
 };
 
-// Get the vector representing the chosen direction
+// Get the vector representing the chosen direction for hexagonal grid
+// Directions: 0: up, 1: right, 2: down, 3: left, 4: up-left, 5: up-right, 6: down-left, 7: down-right
+// Simplified to 6 directions as requested: Q(左上)=4, W(上)=0, E(右上)=5, A(左下)=6, S(下)=2, D(右下)=7
 GameManager.prototype.getVector = function (direction) {
-  // Vectors representing tile movement
+  // Vectors representing tile movement in hexagonal grid
+  // Using axial coordinates movement
   var map = {
-    0: { x: 0,  y: -1 }, // Up
-    1: { x: 1,  y: 0 },  // Right
-    2: { x: 0,  y: 1 },  // Down
-    3: { x: -1, y: 0 }   // Left
+    0: { x: 0,  y: -1 },  // Up (W)
+    2: { x: 0,  y: 1 },   // Down (S)
+    4: { x: -1, y: 0 },   // Left-Up (Q) - depends on row
+    5: { x: 1,  y: -1 },  // Right-Up (E) - depends on row
+    6: { x: -1, y: 1 },   // Left-Down (A) - depends on row
+    7: { x: 1,  y: 0 }    // Right-Down (D) - depends on row
   };
 
   return map[direction];
 };
 
-// Build a list of positions to traverse in the right order
+// Build a list of positions to traverse in the right order for hexagonal grid
 GameManager.prototype.buildTraversals = function (vector) {
   var traversals = { x: [], y: [] };
 
   for (var pos = 0; pos < this.size; pos++) {
-    traversals.x.push(pos);
     traversals.y.push(pos);
   }
 
   // Always traverse from the farthest cell in the chosen direction
-  if (vector.x === 1) traversals.x = traversals.x.reverse();
   if (vector.y === 1) traversals.y = traversals.y.reverse();
 
   return traversals;
@@ -221,17 +225,33 @@ GameManager.prototype.buildTraversals = function (vector) {
 
 GameManager.prototype.findFarthestPosition = function (cell, vector) {
   var previous;
+  var current = cell;
 
   // Progress towards the vector direction until an obstacle is found
   do {
-    previous = cell;
-    cell     = { x: previous.x + vector.x, y: previous.y + vector.y };
-  } while (this.grid.withinBounds(cell) &&
-           this.grid.cellAvailable(cell));
+    previous = current;
+    
+    // Calculate next position based on hexagonal grid rules
+    // This is a simplified version - need to adjust for different directions
+    var nextX = previous.x + vector.x;
+    var nextY = previous.y + vector.y;
+    
+    // Adjust for row offset differences in hexagonal grid
+    if (vector.y === -1 && Math.abs(nextY - Math.floor(this.size / 2)) < Math.abs(previous.y - Math.floor(this.size / 2))) {
+      // Moving up to a row with smaller offset - may need to adjust x
+      nextX += 1;
+    } else if (vector.y === 1 && Math.abs(nextY - Math.floor(this.size / 2)) > Math.abs(previous.y - Math.floor(this.size / 2))) {
+      // Moving down to a row with larger offset - may need to adjust x
+      nextX -= 1;
+    }
+    
+    current = { x: nextX, y: nextY };
+    
+  } while (this.grid.withinBounds(current) && this.grid.cellAvailable(current));
 
   return {
     farthest: previous,
-    next: cell // Used to check if a merge is required
+    next: current // Used to check if a merge is required
   };
 };
 
