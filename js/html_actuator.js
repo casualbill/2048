@@ -3,6 +3,7 @@ function HTMLActuator() {
   this.scoreContainer   = document.querySelector(".score-container");
   this.bestContainer    = document.querySelector(".best-container");
   this.messageContainer = document.querySelector(".game-message");
+  this.gridContainer    = document.querySelector(".grid-container");
 
   this.score = 0;
 }
@@ -11,6 +12,9 @@ HTMLActuator.prototype.actuate = function (grid, metadata) {
   var self = this;
 
   window.requestAnimationFrame(function () {
+    // Update grid size if needed
+    self.updateGridSize(grid.size);
+    
     self.clearContainer(self.tileContainer);
 
     grid.cells.forEach(function (column) {
@@ -33,6 +37,30 @@ HTMLActuator.prototype.actuate = function (grid, metadata) {
     }
 
   });
+};
+
+HTMLActuator.prototype.updateGridSize = function (size) {
+  // Clear existing grid
+  this.clearContainer(this.gridContainer);
+  
+  // Update game container class for responsive font size
+  var gameContainer = document.querySelector('.game-container');
+  gameContainer.className = 'game-container';
+  gameContainer.classList.add('grid-size-' + size);
+  
+  // Create new grid rows and cells
+  for (var y = 0; y < size; y++) {
+    var row = document.createElement("div");
+    row.className = "grid-row";
+    
+    for (var x = 0; x < size; x++) {
+      var cell = document.createElement("div");
+      cell.className = "grid-cell";
+      row.appendChild(cell);
+    }
+    
+    this.gridContainer.appendChild(row);
+  }
 };
 
 // Continues the game (both restart and keep playing)
@@ -68,15 +96,12 @@ HTMLActuator.prototype.addTile = function (tile) {
     // Make sure that the tile gets rendered in the previous position first
     window.requestAnimationFrame(function () {
       classes[2] = self.positionClass({ x: tile.x, y: tile.y });
-      self.applyClasses(wrapper, classes); // Update the position
-    });
-  } else if (tile.mergedFrom) {
-    classes.push("tile-merged");
-    this.applyClasses(wrapper, classes);
+      self.applyClasses(wrapper, classes);
 
-    // Render the tiles that merged
-    tile.mergedFrom.forEach(function (merged) {
-      self.addTile(merged);
+      // Render the tiles that merged
+      tile.mergedFrom.forEach(function (merged) {
+        self.addTile(merged);
+      });
     });
   } else {
     classes.push("tile-new");
@@ -101,6 +126,10 @@ HTMLActuator.prototype.normalizePosition = function (position) {
 HTMLActuator.prototype.positionClass = function (position) {
   position = this.normalizePosition(position);
   return "tile-position-" + position.x + "-" + position.y;
+};
+
+HTMLActuator.prototype.normalizePosition = function (position) {
+  return { x: position.x + 1, y: position.y + 1 };
 };
 
 HTMLActuator.prototype.updateScore = function (score) {

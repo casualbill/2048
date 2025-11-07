@@ -295,13 +295,15 @@ hr {
       line-height: ceil($tile-size);
     }
 
-    // Build position classes
-    @for $x from 1 through $grid-row-cells {
-      @for $y from 1 through $grid-row-cells {
-        &.tile-position-#{$x}-#{$y} {
-          $xPos: floor(($tile-size + $grid-spacing) * ($x - 1));
-          $yPos: floor(($tile-size + $grid-spacing) * ($y - 1));
-          @include transform(translate($xPos, $yPos));
+    // Build position classes for 3x3 to 8x8 grids
+    @for $size from 3 through 8 {
+      @for $x from 1 through $size {
+        @for $y from 1 through $size {
+          &.tile-position-#{$x}-#{$y} {
+            $xPos: floor(($tile-size + $grid-spacing) * ($x - 1));
+            $yPos: floor(($tile-size + $grid-spacing) * ($y - 1));
+            @include transform(translate($xPos, $yPos));
+          }
         }
       }
     }

@@ -47,12 +47,18 @@ KeyboardInputManager.prototype.listen = function () {
     68: 1, // D
     83: 2, // S
     65: 3  // A
+    74: 2, // Vim down
+    72: 3, // Vim left
+    87: 0, // W
+    68: 1, // D
+    83: 2, // S
+    65: 3  // A
   };
 
   // Respond to direction keys
   document.addEventListener("keydown", function (event) {
     var modifiers = event.altKey || event.ctrlKey || event.metaKey ||
-                    event.shiftKey;
+        self.emit("move", mapped);
     var mapped    = map[event.which];
 
     if (!modifiers) {
@@ -66,10 +72,6 @@ KeyboardInputManager.prototype.listen = function () {
     if (!modifiers && event.which === 82) {
       self.restart.call(self, event);
     }
-  });
-
-  // Respond to button presses
-  this.bindButtonPress(".retry-button", this.restart);
   this.bindButtonPress(".restart-button", this.restart);
   this.bindButtonPress(".keep-playing-button", this.keepPlaying);
 
@@ -133,12 +135,3 @@ KeyboardInputManager.prototype.restart = function (event) {
 };
 
 KeyboardInputManager.prototype.keepPlaying = function (event) {
-  event.preventDefault();
-  this.emit("keepPlaying");
-};
-
-KeyboardInputManager.prototype.bindButtonPress = function (selector, fn) {
-  var button = document.querySelector(selector);
-  button.addEventListener("click", fn.bind(this));
-  button.addEventListener(this.eventTouchend, fn.bind(this));
-};
