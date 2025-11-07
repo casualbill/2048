@@ -29,6 +29,24 @@
     <div class="above-game">
       <p class="game-intro">Join the numbers and get to the <strong>2048 tile!</strong></p>
       <a class="restart-button">New Game</a>
+      <a class="multiplayer-button">Multiplayer</a>
+    </div>
+
+    <div class="multiplayer-menu" style="display: none;">
+      <h2>Multiplayer Mode</h2>
+      <div class="mode-selector">
+        <h3>Select Mode:</h3>
+        <a class="mode-button" data-mode="timed">Timed Mode</a>
+        <a class="mode-button" data-mode="infinite">Infinite Mode</a>
+      </div>
+      <div class="time-selector" style="display: none;">
+        <h3>Select Time:</h3>
+        <a class="time-button" data-time="60">1 Minute</a>
+        <a class="time-button" data-time="180">3 Minutes</a>
+        <a class="time-button" data-time="300">5 Minutes</a>
+      </div>
+      <a class="start-multiplayer-button">Start Game</a>
+      <a class="cancel-multiplayer-button">Cancel</a>
     </div>
 
     <div class="game-container">
@@ -40,35 +58,74 @@
         </div>
       </div>
 
-      <div class="grid-container">
-        <div class="grid-row">
-          <div class="grid-cell"></div>
-          <div class="grid-cell"></div>
-          <div class="grid-cell"></div>
-          <div class="grid-cell"></div>
-        </div>
-        <div class="grid-row">
-          <div class="grid-cell"></div>
-          <div class="grid-cell"></div>
-          <div class="grid-cell"></div>
-          <div class="grid-cell"></div>
-        </div>
-        <div class="grid-row">
-          <div class="grid-cell"></div>
-          <div class="grid-cell"></div>
-          <div class="grid-cell"></div>
-          <div class="grid-cell"></div>
-        </div>
-        <div class="grid-row">
-          <div class="grid-cell"></div>
-          <div class="grid-cell"></div>
-          <div class="grid-cell"></div>
-          <div class="grid-cell"></div>
-        </div>
-      </div>
+      <div class="game-boards">
+        <div class="player-board player1">
+          <h3>Player 1 (Arrow Keys)</h3>
+          <div class="grid-container">
+            <div class="grid-row">
+              <div class="grid-cell"></div>
+              <div class="grid-cell"></div>
+              <div class="grid-cell"></div>
+              <div class="grid-cell"></div>
+            </div>
+            <div class="grid-row">
+              <div class="grid-cell"></div>
+              <div class="grid-cell"></div>
+              <div class="grid-cell"></div>
+              <div class="grid-cell"></div>
+            </div>
+            <div class="grid-row">
+              <div class="grid-cell"></div>
+              <div class="grid-cell"></div>
+              <div class="grid-cell"></div>
+              <div class="grid-cell"></div>
+            </div>
+            <div class="grid-row">
+              <div class="grid-cell"></div>
+              <div class="grid-cell"></div>
+              <div class="grid-cell"></div>
+              <div class="grid-cell"></div>
+            </div>
+          </div>
 
-      <div class="tile-container">
+          <div class="tile-container">
 
+          </div>
+        </div>
+
+        <div class="player-board player2" style="display: none;">
+          <h3>Player 2 (WASD)</h3>
+          <div class="grid-container">
+            <div class="grid-row">
+              <div class="grid-cell"></div>
+              <div class="grid-cell"></div>
+              <div class="grid-cell"></div>
+              <div class="grid-cell"></div>
+            </div>
+            <div class="grid-row">
+              <div class="grid-cell"></div>
+              <div class="grid-cell"></div>
+              <div class="grid-cell"></div>
+              <div class="grid-cell"></div>
+            </div>
+            <div class="grid-row">
+              <div class="grid-cell"></div>
+              <div class="grid-cell"></div>
+              <div class="grid-cell"></div>
+              <div class="grid-cell"></div>
+            </div>
+            <div class="grid-row">
+              <div class="grid-cell"></div>
+              <div class="grid-cell"></div>
+              <div class="grid-cell"></div>
+              <div class="grid-cell"></div>
+            </div>
+          </div>
+
+          <div class="tile-container">
+
+          </div>
+        </div>
       </div>
     </div>
 
@@ -94,6 +151,8 @@
   <script src="js/tile.js"></script>
   <script src="js/local_storage_manager.js"></script>
   <script src="js/game_manager.js"></script>
+  <script src="js/multiplayer_game_manager.js"></script>
+  <script src="js/multiplayer_ui.js"></script>
   <script src="js/application.js"></script>
 </body>
 </html>

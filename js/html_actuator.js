@@ -1,37 +1,85 @@
 function HTMLActuator() {
-  this.tileContainer    = document.querySelector(".tile-container");
-  this.scoreContainer   = document.querySelector(".score-container");
-  this.bestContainer    = document.querySelector(".best-container");
+  this.tileContainers   = [
+    document.querySelector(".player1 .tile-container"),
+    document.querySelector(".player2 .tile-container")
+  ];
+  this.scoreContainers  = [
+    document.querySelector(".player1 .score-container"),
+    document.querySelector(".player2 .score-container")
+  ];
   this.messageContainer = document.querySelector(".game-message");
-
-  this.score = 0;
+  
+  // Create score containers for multiplayer
+  this.createMultiplayerScoreContainers();
+  
+  this.scores = [0, 0];
 }
 
-HTMLActuator.prototype.actuate = function (grid, metadata) {
+HTMLActuator.prototype.createMultiplayerScoreContainers = function() {
+  // Add score containers for player 2
+  var player1Score = document.querySelector(".player1 .score-container");
+  if (!player1Score) {
+    var player1Board = document.querySelector(".player1");
+    var scoreContainer1 = document.createElement("div");
+    scoreContainer1.className = "score-container player1-score";
+    scoreContainer1.textContent = "0";
+    player1Board.insertBefore(scoreContainer1, player1Board.querySelector(".grid-container"));
+  }
+  
+  var player2Score = document.querySelector(".player2 .score-container");
+  if (!player2Score) {
+    var player2Board = document.querySelector(".player2");
+    var scoreContainer2 = document.createElement("div");
+    scoreContainer2.className = "score-container player2-score";
+    scoreContainer2.textContent = "0";
+    player2Board.insertBefore(scoreContainer2, player2Board.querySelector(".grid-container"));
+  }
+  
+  // Update the score containers references
+  this.scoreContainers = [
+    document.querySelector(".player1 .score-container"),
+    document.querySelector(".player2 .score-container")
+  ];
+};
+
+HTMLActuator.prototype.actuate = function (players, metadata) {
   var self = this;
 
   window.requestAnimationFrame(function () {
-    self.clearContainer(self.tileContainer);
-
-    grid.cells.forEach(function (column) {
-      column.forEach(function (cell) {
-        if (cell) {
-          self.addTile(cell);
-        }
-      });
-    });
-
-    self.updateScore(metadata.score);
-    self.updateBestScore(metadata.bestScore);
-
-    if (metadata.terminated) {
-      if (metadata.over) {
-        self.message(false); // You lose
-      } else if (metadata.won) {
-        self.message(true); // You win!
+    if (metadata.multiplayer) {
+      // Multiplayer mode
+      for (var i = 0; i < 2; i++) {
+        self.clearContainer(self.tileContainers[i]);
+        
+        players[i].grid.cells.forEach(function (column) {
+          column.forEach(function (cell) {
+            if (cell) {
+              self.addTile(cell, i);
+            }
+          });
+        });
+        
+        self.updateScore(players[i].score, i);
       }
+      
+      // Show timer if in timed mode
+      if (metadata.gameMode === "timed") {
+        self.updateTimer(metadata.timeRemaining);
+      }
+    } else {
+      // Single player mode (backward compatibility)
+      self.clearContainer(self.tileContainers[0]);
+      
+      players.cells.forEach(function (column) {
+        column.forEach(function (cell) {
+          if (cell) {
+            self.addTile(cell, 0);
+          }
+        });
+      });
+      
+      self.updateScore(metadata.score, 0);
     }
-
   });
 };
 
@@ -46,7 +94,7 @@ HTMLActuator.prototype.clearContainer = function (container) {
   }
 };
 
-HTMLActuator.prototype.addTile = function (tile) {
+HTMLActuator.prototype.addTile = function (tile, playerIndex) {
   var self = this;
 
   var wrapper   = document.createElement("div");
@@ -76,7 +124,7 @@ HTMLActuator.prototype.addTile = function (tile) {
 
     // Render the tiles that merged
     tile.mergedFrom.forEach(function (merged) {
-      self.addTile(merged);
+      self.addTile(merged, playerIndex);
     });
   } else {
     classes.push("tile-new");
@@ -86,8 +134,8 @@ HTMLActuator.prototype.addTile = function (tile) {
   // Add the inner part of the tile to the wrapper
   wrapper.appendChild(inner);
 
-  // Put the tile on the board
-  this.tileContainer.appendChild(wrapper);
+  // Put the tile on the correct player's board
+  this.tileContainers[playerIndex].appendChild(wrapper);
 };
 
 HTMLActuator.prototype.applyClasses = function (element, classes) {
@@ -103,33 +151,44 @@ HTMLActuator.prototype.positionClass = function (position) {
   return "tile-position-" + position.x + "-" + position.y;
 };
 
-HTMLActuator.prototype.updateScore = function (score) {
-  this.clearContainer(this.scoreContainer);
+HTMLActuator.prototype.updateScore = function (score, playerIndex) {
+  this.clearContainer(this.scoreContainers[playerIndex]);
 
-  var difference = score - this.score;
-  this.score = score;
+  var difference = score - this.scores[playerIndex];
+  this.scores[playerIndex] = score;
 
-  this.scoreContainer.textContent = this.score;
+  this.scoreContainers[playerIndex].textContent = this.scores[playerIndex];
 
   if (difference > 0) {
     var addition = document.createElement("div");
     addition.classList.add("score-addition");
     addition.textContent = "+" + difference;
 
-    this.scoreContainer.appendChild(addition);
+    this.scoreContainers[playerIndex].appendChild(addition);
   }
 };
 
-HTMLActuator.prototype.updateBestScore = function (bestScore) {
-  this.bestContainer.textContent = bestScore;
+HTMLActuator.prototype.updateTimer = function(seconds) {
+  var timerContainer = document.querySelector(".timer-container");
+  if (!timerContainer) {
+    timerContainer = document.createElement("div");
+    timerContainer.className = "timer-container";
+    var heading = document.querySelector(".heading");
+    heading.parentNode.insertBefore(timerContainer, heading.nextSibling);
+  }
+  
+  var minutes = Math.floor(seconds / 60);
+  var secs = seconds % 60;
+  timerContainer.textContent = "Time: " + minutes + ":" + (secs < 10 ? "0" : "") + secs;
 };
 
-HTMLActuator.prototype.message = function (won) {
-  var type    = won ? "game-won" : "game-over";
-  var message = won ? "You win!" : "Game over!";
-
-  this.messageContainer.classList.add(type);
-  this.messageContainer.getElementsByTagName("p")[0].textContent = message;
+HTMLActuator.prototype.message = function (message, players) {
+  this.messageContainer.classList.add("game-won");
+  
+  var messageElement = this.messageContainer.getElementsByTagName("p")[0];
+  messageElement.innerHTML = message + "<br>Player 1 Score: " + players[0].score + "<br>Player 2 Score: " + players[1].score;
+  
+  this.messageContainer.style.display = "block";
 };
 
 HTMLActuator.prototype.clearMessage = function () {

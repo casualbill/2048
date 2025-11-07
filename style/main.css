@@ -756,3 +756,118 @@ hr {
     margin-top: 90px !important; }
   .game-message .lower {
     margin-top: 30px !important; } }
+
+/* Multiplayer styles */
+.multiplayer-button {
+  display: inline-block;
+  background: #8f7a66;
+  border-radius: 3px;
+  padding: 0 20px;
+  text-decoration: none;
+  color: #f9f6f2;
+  height: 40px;
+  line-height: 42px;
+  display: block;
+  text-align: center;
+  float: right;
+  margin-left: 10px;
+}
+
+.multiplayer-menu {
+  text-align: center;
+  margin: 20px 0;
+}
+
+.mode-selector, .time-selector {
+  margin: 20px 0;
+}
+
+.mode-button, .time-button, .start-multiplayer-button, .cancel-multiplayer-button {
+  display: inline-block;
+  background: #8f7a66;
+  border-radius: 3px;
+  padding: 0 20px;
+  text-decoration: none;
+  color: #f9f6f2;
+  height: 40px;
+  line-height: 42px;
+  margin: 0 10px;
+  cursor: pointer;
+}
+
+.game-boards {
+  display: flex;
+  justify-content: space-around;
+  margin: 20px 0;
+}
+
+.player-board {
+  position: relative;
+  width: 45%;
+}
+
+.player2 .grid-cell {
+  background: rgba(155, 89, 182, 0.35); /* Purple background for player 2 */
+}
+
+.player2 .tile-2 .tile-inner {
+  background: #f2e6ff;
+  color: #776e65;
+}
+
+.player2 .tile-4 .tile-inner {
+  background: #e6ccff;
+  color: #776e65;
+}
+
+.player2 .tile-8 .tile-inner {
+  background: #d9b3ff;
+  color: #f9f6f2;
+}
+
+.player2 .tile-16 .tile-inner {
+  background: #cc99ff;
+  color: #f9f6f2;
+}
+
+.player2 .tile-32 .tile-inner {
+  background: #bf80ff;
+  color: #f9f6f2;
+}
+
+.player2 .tile-64 .tile-inner {
+  background: #b366ff;
+  color: #f9f6f2;
+}
+
+.player2 .tile-128 .tile-inner {
+  background: #a64dff;
+  color: #f9f6f2;
+}
+
+.player2 .tile-256 .tile-inner {
+  background: #9933ff;
+  color: #f9f6f2;
+}
+
+.player2 .tile-512 .tile-inner {
+  background: #8c1aff;
+  color: #f9f6f2;
+}
+
+.player2 .tile-1024 .tile-inner {
+  background: #8000ff;
+  color: #f9f6f2;
+}
+
+.player2 .tile-2048 .tile-inner {
+  background: #6600cc;
+  color: #f9f6f2;
+}
+
+.timer-container {
+  text-align: center;
+  font-size: 24px;
+  font-weight: bold;
+  margin: 10px 0;
+}

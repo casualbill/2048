@@ -58,7 +58,13 @@ KeyboardInputManager.prototype.listen = function () {
     if (!modifiers) {
       if (mapped !== undefined) {
         event.preventDefault();
-        self.emit("move", mapped);
+        // Determine which player is moving based on key pressed
+        var player = 1;
+        // WASD keys are 87, 65, 83, 68 for W, A, S, D
+        if ([87, 65, 83, 68].indexOf(event.which) !== -1) {
+          player = 2;
+        }
+        self.emit("move", mapped, player);
       }
     }
 
