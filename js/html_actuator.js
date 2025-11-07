@@ -68,6 +68,10 @@ HTMLActuator.prototype.addTile = function (tile) {
     // Make sure that the tile gets rendered in the previous position first
     window.requestAnimationFrame(function () {
       classes[2] = self.positionClass({ x: tile.x, y: tile.y });
+      // Add bounce animation for tiles falling due to gravity
+      if (tile.y > tile.previousPosition.y) {
+        classes.push("tile-bounce");
+      }
       self.applyClasses(wrapper, classes); // Update the position
     });
   } else if (tile.mergedFrom) {
@@ -136,4 +140,35 @@ HTMLActuator.prototype.clearMessage = function () {
   // IE only takes one value to remove at a time.
   this.messageContainer.classList.remove("game-won");
   this.messageContainer.classList.remove("game-over");
+};
+
+// Apply rotation animation to the grid
+HTMLActuator.prototype.animateRotation = function(direction) {
+  var gridContainer = document.querySelector(".grid-container");
+  var tileContainer = document.querySelector(".tile-container");
+  var angle = 0;
+
+  if (direction === "clockwise") {
+    angle = 90;
+  } else if (direction === "counter-clockwise") {
+    angle = -90;
+  } else if (direction === "180") {
+    angle = 180;
+  }
+
+  // Apply rotation to grid container
+  gridContainer.style.transition = "transform 0.6s ease-in-out";
+  gridContainer.style.transform = "rotate(" + angle + "deg)";
+
+  // Apply inverse rotation to tiles to keep them upright
+  tileContainer.style.transition = "transform 0.6s ease-in-out";
+  tileContainer.style.transform = "rotate(" + (-angle) + "deg)";
+
+  // Reset the transform after animation completes
+  setTimeout(function() {
+    gridContainer.style.transition = "none";
+    gridContainer.style.transform = "rotate(0deg)";
+    tileContainer.style.transition = "none";
+    tileContainer.style.transform = "rotate(0deg)";
+  }, 600);
 };

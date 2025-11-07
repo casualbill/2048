@@ -35,18 +35,12 @@ KeyboardInputManager.prototype.listen = function () {
   var self = this;
 
   var map = {
-    38: 0, // Up
-    39: 1, // Right
-    40: 2, // Down
-    37: 3, // Left
-    75: 0, // Vim up
-    76: 1, // Vim right
-    74: 2, // Vim down
-    72: 3, // Vim left
-    87: 0, // W
-    68: 1, // D
-    83: 2, // S
-    65: 3  // A
+    39: "clockwise", // Right arrow - clockwise rotation
+    37: "counter-clockwise", // Left arrow - counter-clockwise rotation
+    40: "180", // Down arrow - 180 degree rotation
+    76: "clockwise", // Vim right
+    72: "counter-clockwise", // Vim left
+    74: "180" // Vim down
   };
 
   // Respond to direction keys
@@ -58,7 +52,7 @@ KeyboardInputManager.prototype.listen = function () {
     if (!modifiers) {
       if (mapped !== undefined) {
         event.preventDefault();
-        self.emit("move", mapped);
+        self.emit("rotate", mapped);
       }
     }
 
@@ -72,6 +66,10 @@ KeyboardInputManager.prototype.listen = function () {
   this.bindButtonPress(".retry-button", this.restart);
   this.bindButtonPress(".restart-button", this.restart);
   this.bindButtonPress(".keep-playing-button", this.keepPlaying);
+  this.bindButtonPress(".rotation-button.clockwise", this.rotateClockwise);
+  this.bindButtonPress(".rotation-button.counter-clockwise", this.rotateCounterClockwise);
+  this.bindButtonPress(".rotation-button.rotate-180", this.rotate180);
+  this.bindButtonPress(".rotation-button.gravity-sensor", this.toggleGravitySensor);
 
   // Respond to swipe events
   var touchStartClientX, touchStartClientY;
@@ -135,6 +133,26 @@ KeyboardInputManager.prototype.restart = function (event) {
 KeyboardInputManager.prototype.keepPlaying = function (event) {
   event.preventDefault();
   this.emit("keepPlaying");
+};
+
+KeyboardInputManager.prototype.rotateClockwise = function (event) {
+  event.preventDefault();
+  this.emit("rotate", "clockwise");
+};
+
+KeyboardInputManager.prototype.rotateCounterClockwise = function (event) {
+  event.preventDefault();
+  this.emit("rotate", "counter-clockwise");
+};
+
+KeyboardInputManager.prototype.rotate180 = function (event) {
+  event.preventDefault();
+  this.emit("rotate", "180");
+};
+
+KeyboardInputManager.prototype.toggleGravitySensor = function (event) {
+  event.preventDefault();
+  this.emit("toggleGravitySensor");
 };
 
 KeyboardInputManager.prototype.bindButtonPress = function (selector, fn) {
