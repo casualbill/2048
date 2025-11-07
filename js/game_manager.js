@@ -7,8 +7,14 @@ function GameManager(size, InputManager, Actuator, StorageManager) {
   this.startTiles     = 2;
 
   this.inputManager.on("move", this.move.bind(this));
+  this.inputManager.on("rotate", this.rotate.bind(this));
   this.inputManager.on("restart", this.restart.bind(this));
   this.inputManager.on("keepPlaying", this.keepPlaying.bind(this));
+  this.inputManager.on("toggleGravitySensor", this.toggleGravitySensor.bind(this));
+  
+  // Gravity sensor state
+  this.gravitySensorEnabled = false;
+  this.gravitySensor = null;
 
   this.setup();
 }
@@ -187,6 +193,83 @@ GameManager.prototype.move = function (direction) {
     }
 
     this.actuate();
+  }
+};
+
+// Rotate the grid and simulate gravity
+GameManager.prototype.rotate = function(direction) {
+  if (this.isGameTerminated()) return;
+
+  // Animate the rotation
+  this.actuator.animateRotation(direction);
+
+  // Rotate the grid
+  if (direction === "clockwise") {
+    this.grid.rotateClockwise();
+  } else if (direction === "counter-clockwise") {
+    this.grid.rotateCounterClockwise();
+  } else if (direction === "180") {
+    this.grid.rotate180();
+  }
+
+  // Simulate gravity by moving down after a short delay to match animation
+  var self = this;
+  setTimeout(function() {
+    self.move(2);
+  }, 600);
+};
+
+// Toggle gravity sensor
+GameManager.prototype.toggleGravitySensor = function() {
+  if (!window.DeviceOrientationEvent) {
+    // Gravity sensor not supported
+    alert("Gravity sensor not supported on this device");
+    return;
+  }
+
+  this.gravitySensorEnabled = !this.gravitySensorEnabled;
+  var button = document.getElementById("gravity-sensor-btn");
+  
+  if (this.gravitySensorEnabled) {
+    // Enable gravity sensor
+    button.style.background = "#f65e3b";
+    this.gravitySensor = window.addEventListener("deviceorientation", this.handleGravity.bind(this));
+  } else {
+    // Disable gravity sensor
+    button.style.background = "#8f7a66";
+    window.removeEventListener("deviceorientation", this.handleGravity.bind(this));
+  }
+};
+
+// Handle gravity sensor events
+GameManager.prototype.handleGravity = function(event) {
+  if (!this.gravitySensorEnabled || this.isGameTerminated()) return;
+
+  // Get rotation around the x and y axes
+  var beta = event.beta; // Rotation around x-axis (-180 to 180)
+  var gamma = event.gamma; // Rotation around y-axis (-90 to 90)
+
+  // Determine rotation direction based on device orientation
+  var direction;
+  if (Math.abs(beta) > Math.abs(gamma)) {
+    // Tilted more up/down
+    if (beta > 45) {
+      direction = "clockwise";
+    } else if (beta < -45) {
+      direction = "counter-clockwise";
+    }
+  } else {
+    // Tilted more left/right
+    if (gamma > 45) {
+      direction = "clockwise";
+    } else if (gamma < -45) {
+      direction = "counter-clockwise";
+    }
+  }
+
+  if (direction) {
+    // Rotate the grid based on gravity
+    this.rotate(direction);
   }
 };
 

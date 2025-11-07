@@ -115,3 +115,57 @@ Grid.prototype.serialize = function () {
     cells: cellState
   };
 };
+
+// Rotate the grid clockwise
+Grid.prototype.rotateClockwise = function () {
+  var newCells = this.empty();
+  var size = this.size;
+
+  for (var x = 0; x < size; x++) {
+    for (var y = 0; y < size; y++) {
+      newCells[x][y] = this.cells[size - y - 1][x];
+      if (newCells[x][y]) {
+        newCells[x][y].x = x;
+        newCells[x][y].y = y;
+      }
+    }
+  }
+
+  this.cells = newCells;
+};
+
+// Rotate the grid counter-clockwise
+Grid.prototype.rotateCounterClockwise = function () {
+  var newCells = this.empty();
+  var size = this.size;
+
+  for (var x = 0; x < size; x++) {
+    for (var y = 0; y < size; y++) {
+      newCells[x][y] = this.cells[y][size - x - 1];
+      if (newCells[x][y]) {
+        newCells[x][y].x = x;
+        newCells[x][y].y = y;
+      }
+    }
+  }
+
+  this.cells = newCells;
+};
+
+// Rotate the grid 180 degrees
+Grid.prototype.rotate180 = function () {
+  var newCells = this.empty();
+  var size = this.size;
+
+  for (var x = 0; x < size; x++) {
+    for (var y = 0; y < size; y++) {
+      newCells[x][y] = this.cells[size - x - 1][size - y - 1];
+      if (newCells[x][y]) {
+        newCells[x][y].x = x;
+        newCells[x][y].y = y;
+      }
+    }
+  }
+
+  this.cells = newCells;
+};
