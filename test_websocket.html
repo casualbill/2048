@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>WebSocket Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .message {
+            margin: 10px 0;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .sent { background-color: #e6f9ff; }
+        .received { background-color: #f0fff4; }
+        .error { background-color: #fff2f0; color: #c53030; }
+        .input-section { margin: 20px 0; }
+        input, button { margin: 5px; padding: 8px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>WebSocket Test Client</h1>
+        <div class="connection-status">
+            <span id="status">Disconnected</span>
+        </div>
+        <div class="messages">
+            <div id="message-container"></div>
+        </div>
+        <div class="input-section">
+            <input type="text" id="message-input" placeholder="Enter message">
+            <button id="send-btn">Send</button>
+            <button id="connect-btn">Connect</button>
+            <button id="disconnect-btn">Disconnect</button>
+            <button id="create-room-btn">Create Room</button>
+            <button id="list-rooms-btn">List Rooms</button>
+        </div>
+    </div>
+
+    <script>
+        const statusElement = document.getElementById('status');
+        const messageContainer = document.getElementById('message-container');
+        const messageInput = document.getElementById('message-input');
+        const sendBtn = document.getElementById('send-btn');
+        const connectBtn = document.getElementById('connect-btn');
+        const disconnectBtn = document.getElementById('disconnect-btn');
+        const createRoomBtn = document.getElementById('create-room-btn');
+        const listRoomsBtn = document.getElementById('list-rooms-btn');
+        
+        let socket = null;
+        
+        function addMessage(text, type = 'received') {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${type}`;
+            messageDiv.textContent = text;
+            messageContainer.appendChild(messageDiv);
+            messageContainer.scrollTop = messageContainer.scrollHeight;
+        }
+        
+        function updateStatus(connected) {
+            statusElement.textContent = connected ? 'Connected' : 'Disconnected';
+            statusElement.style.color = connected ? '#22543d' : '#c53030';
+        }
+        
+        connectBtn.addEventListener('click', () => {
+            if (socket && socket.readyState === WebSocket.OPEN) {
+                addMessage('Already connected', 'error');
+                return;
+            }
+            
+            socket = new WebSocket('ws://localhost:8765');
+            
+            socket.onopen = () => {
+                addMessage('Connected to server', 'received');
+                updateStatus(true);
+            };
+            
+            socket.onmessage = (event) => {
+                try {
+                    const data = JSON.parse(event.data);
+                    addMessage('Received: ' + JSON.stringify(data, null, 2), 'received');
+                } catch (e) {
+                    addMessage('Received: ' + event.data, 'received');
+                }
+            };
+            
+            socket.onclose = () => {
+                addMessage('Disconnected from server', 'received');
+                updateStatus(false);
+            };
+            
+            socket.onerror = (error) => {
+                addMessage('Error: ' + error.message, 'error');
+            };
+        });
+        
+        disconnectBtn.addEventListener('click', () => {
+            if (socket) {
+                socket.close();
+            }
+        });
+        
+        sendBtn.addEventListener('click', () => {
+            const message = messageInput.value;
+            if (!message || !socket || socket.readyState !== WebSocket.OPEN) {
+                return;
+            }
+            
+            try {
+                const data = JSON.parse(message);
+                socket.send(JSON.stringify(data));
+                addMessage('Sent: ' + JSON.stringify(data, null, 2), 'sent');
+            } catch (e) {
+                socket.send(message);
+                addMessage('Sent: ' + message, 'sent');
+            }
+            
+            messageInput.value = '';
+        });
+        
+        createRoomBtn.addEventListener('click', () => {
+            if (!socket || socket.readyState !== WebSocket.OPEN) {
+                addMessage('Not connected to server', 'error');
+                return;
+            }
+            
+            const message = {
+                command: 'create_room',
+                mode: 'race',
+                password: ''
+            };
+            
+            socket.send(JSON.stringify(message));
+            addMessage('Sent: ' + JSON.stringify(message, null, 2), 'sent');
+        });
+        
+        listRoomsBtn.addEventListener('click', () => {
+            if (!socket || socket.readyState !== WebSocket.OPEN) {
+                addMessage('Not connected to server', 'error');
+                return;
+            }
+            
+            const message = { command: 'list_rooms' };
+            socket.send(JSON.stringify(message));
+            addMessage('Sent: ' + JSON.stringify(message, null, 2), 'sent');
+        });
+    </script>
+</body>
+</html>
