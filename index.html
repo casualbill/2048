@@ -29,8 +29,19 @@
     <div class="above-game">
       <p class="game-intro">Join the numbers and get to the <strong>2048 tile!</strong></p>
       <a class="restart-button">New Game</a>
-    </div>
-
+      <div class="ai-controls">
+        <div class="ai-mode-buttons">
+          <a class="ai-mode-button" id="ai-auto">AI自动玩</a>
+          <a class="ai-mode-button" id="ai-suggest">AI建议</a>
+          <a class="ai-mode-button" id="ai-assist">协助模式</a>
+        </div>
+        <div class="ai-speed-controls">
+          <span>AI速度:</span>
+          <a class="ai-speed-button" id="ai-speed-fast">快</a>
+          <a class="ai-speed-button active" id="ai-speed-medium">中</a>
+          <a class="ai-speed-button" id="ai-speed-slow">慢</a>
+        </div>
+      </div>
     <div class="game-container">
       <div class="game-message">
         <p></p>
@@ -70,8 +81,19 @@
       <div class="tile-container">
 
       </div>
+      
+      <!-- AI Suggestion Elements -->
+      <div class="ai-suggestion-container">
+        <div class="ai-suggestion-arrow" id="ai-suggestion-arrow"></div>
+        <div class="ai-suggestion-tooltip" id="ai-suggestion-tooltip">
+          <div class="ai-suggestion-text" id="ai-suggestion-text"></div>
+          <div class="ai-suggestion-actions">
+            <button class="ai-suggestion-accept" id="ai-suggestion-accept">采纳</button>
+            <button class="ai-suggestion-reject" id="ai-suggestion-reject">拒绝</button>
+          </div>
+        </div>
+      </div>
     </div>
-
     <p class="game-explanation">
       <strong class="important">How to play:</strong> Use your <strong>arrow keys</strong> to move the tiles. When two tiles with the same number touch, they <strong>merge into one!</strong>
     </p>
@@ -87,13 +109,6 @@
 
   <script src="js/bind_polyfill.js"></script>
   <script src="js/classlist_polyfill.js"></script>
-  <script src="js/animframe_polyfill.js"></script>
-  <script src="js/keyboard_input_manager.js"></script>
-  <script src="js/html_actuator.js"></script>
-  <script src="js/grid.js"></script>
-  <script src="js/tile.js"></script>
-  <script src="js/local_storage_manager.js"></script>
-  <script src="js/game_manager.js"></script>
-  <script src="js/application.js"></script>
+  <!-- WebLLM library -->
+  <script src="https://cdn.jsdelivr.net/npm/@mlc-ai/web-llm@latest/dist/web-llm.js"></script>
 </body>
-</html>
