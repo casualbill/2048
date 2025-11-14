@@ -3,6 +3,7 @@ function HTMLActuator() {
   this.scoreContainer   = document.querySelector(".score-container");
   this.bestContainer    = document.querySelector(".best-container");
   this.messageContainer = document.querySelector(".game-message");
+  this.powerUpsContainer = document.querySelector(".power-ups");
 
   this.score = 0;
 }
@@ -23,6 +24,7 @@ HTMLActuator.prototype.actuate = function (grid, metadata) {
 
     self.updateScore(metadata.score);
     self.updateBestScore(metadata.bestScore);
+    self.updatePowerUps(metadata.powerUps);
 
     if (metadata.terminated) {
       if (metadata.over) {
@@ -136,4 +138,25 @@ HTMLActuator.prototype.clearMessage = function () {
   // IE only takes one value to remove at a time.
   this.messageContainer.classList.remove("game-won");
   this.messageContainer.classList.remove("game-over");
+};
+
+HTMLActuator.prototype.updatePowerUps = function(powerUps) {
+  for (var type in powerUps) {
+    if (powerUps.hasOwnProperty(type)) {
+      var count = powerUps[type];
+      var element = document.querySelector('.power-up' + type);
+      if (element) {
+        var countElement = element.querySelector('.power-up-count');
+        if (countElement) {
+          countElement.textContent = count;
+        }
+        // Add disabled class if count is zero
+        if (count <= 0) {
+          element.classList.add('disabled');
+        } else {
+          element.classList.remove('disabled');
+        }
+      }
+    }
+  }
 };
