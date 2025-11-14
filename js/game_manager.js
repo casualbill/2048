@@ -37,8 +37,7 @@ GameManager.prototype.setup = function () {
 
   // Reload the game from a previous game if present
   if (previousState) {
-    this.grid        = new Grid(previousState.grid.size,
-                                previousState.grid.cells); // Reload grid
+    this.grid        = new Grid(previousState.grid.size, previousState.grid); // Reload grid
     this.score       = previousState.score;
     this.over        = previousState.over;
     this.won         = previousState.won;
@@ -52,6 +51,12 @@ GameManager.prototype.setup = function () {
 
     // Add the initial tiles
     this.addStartTiles();
+    
+    // 初始化黑洞：随机选择一个格子
+    if (this.grid.cellsAvailable()) {
+      var blackHolePos = this.grid.randomAvailableCell();
+      this.grid.setBlackHole(blackHolePos);
+    }
   }
 
   // Update the actuator
@@ -70,10 +75,16 @@ GameManager.prototype.addRandomTile = function () {
   if (this.grid.cellsAvailable()) {
     var value = Math.random() < 0.9 ? 2 : 4;
     var tile = new Tile(this.grid.randomAvailableCell(), value);
+    
+    // 冰冻数字机制：16或以上数字有30%概率被冰封
+    if (value >= 16 && Math.random() < 0.3) {
+      tile.isFrozen = true;
+      tile.freezeCountdown = 5;
+    }
 
     this.grid.insertTile(tile);
   }
-};
+}
 
 // Sends the updated grid to the actuator
 GameManager.prototype.actuate = function () {
@@ -148,12 +159,12 @@ GameManager.prototype.move = function (direction) {
       cell = { x: x, y: y };
       tile = self.grid.cellContent(cell);
 
-      if (tile) {
+      if (tile && !tile.isFrozen) {
         var positions = self.findFarthestPosition(cell, vector);
         var next      = self.grid.cellContent(positions.next);
 
         // Only one merger per row traversal?
-        if (next && next.value === tile.value && !next.mergedFrom) {
+        if (next && next.value === tile.value && !next.mergedFrom && !next.isFrozen) {
           var merged = new Tile(positions.next, tile.value * 2);
           merged.mergedFrom = [tile, next];
 
@@ -180,6 +191,42 @@ GameManager.prototype.move = function (direction) {
   });
 
   if (moved) {
+    // 减少冰冻倒计时
+    this.grid.eachCell(function(x, y, tile) {
+      if (tile && tile.isFrozen) {
+        tile.freezeCountdown--;
+        if (tile.freezeCountdown <= 0) {
+          tile.isFrozen = false;
+          tile.freezeCountdown = 0;
+        }
+      }
+    });
+    
+    // 处理黑洞逻辑
+    var self = this;
+    
+    // 检查是否有数字移动到黑洞位置
+    if (this.grid.blackHolePosition) {
+      var tileInBlackHole = this.grid.cellContent(this.grid.blackHolePosition);
+      if (tileInBlackHole) {
+        this.grid.removeTile(tileInBlackHole);
+      }
+      
+      // 增加黑洞回合数
+      this.grid.incrementBlackHoleTurns();
+      
+      // 检查黑洞是否需要坍缩（50回合后）
+      if (this.grid.getBlackHoleTurns() >= 50) {
+        this.grid.removeBlackHole();
+        
+        // 在新的空格子生成黑洞
+        if (this.grid.cellsAvailable()) {
+          var newBlackHolePos = this.grid.randomAvailableCell();
+          this.grid.setBlackHole(newBlackHolePos);
+        }
+      }
+    }
+    
     this.addRandomTile();
 
     if (!this.movesAvailable()) {

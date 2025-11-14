@@ -1,6 +1,8 @@
 function Grid(size, previousState) {
   this.size = size;
   this.cells = previousState ? this.fromState(previousState) : this.empty();
+  this.blackHolePosition = previousState ? previousState.blackHolePosition : null;
+  this.blackHoleTurns = previousState ? previousState.blackHoleTurns : 0;
 }
 
 // Build a grid of the specified size
@@ -20,13 +22,21 @@ Grid.prototype.empty = function () {
 
 Grid.prototype.fromState = function (state) {
   var cells = [];
+  var cellState = state.cells || state;
 
   for (var x = 0; x < this.size; x++) {
     var row = cells[x] = [];
 
     for (var y = 0; y < this.size; y++) {
-      var tile = state[x][y];
-      row.push(tile ? new Tile(tile.position, tile.value) : null);
+      var tile = cellState[x][y];
+      if (tile) {
+        var newTile = new Tile(tile.position, tile.value);
+        newTile.isFrozen = tile.isFrozen || false;
+        newTile.freezeCountdown = tile.freezeCountdown || 0;
+        row.push(newTile);
+      } else {
+        row.push(null);
+      }
     }
   }
 
@@ -99,6 +109,34 @@ Grid.prototype.withinBounds = function (position) {
          position.y >= 0 && position.y < this.size;
 };
 
+// 设置黑洞位置
+Grid.prototype.setBlackHole = function (position) {
+  this.blackHolePosition = position;
+  this.blackHoleTurns = 0;
+};
+
+// 检查是否是黑洞位置
+Grid.prototype.isBlackHole = function (position) {
+  if (!this.blackHolePosition) return false;
+  return this.blackHolePosition.x === position.x && this.blackHolePosition.y === position.y;
+};
+
+// 增加黑洞回合数
+Grid.prototype.incrementBlackHoleTurns = function () {
+  this.blackHoleTurns++;
+};
+
+// 获取黑洞回合数
+Grid.prototype.getBlackHoleTurns = function () {
+  return this.blackHoleTurns;
+};
+
+// 移除黑洞
+Grid.prototype.removeBlackHole = function () {
+  this.blackHolePosition = null;
+  this.blackHoleTurns = 0;
+};
+
 Grid.prototype.serialize = function () {
   var cellState = [];
 
@@ -112,6 +150,8 @@ Grid.prototype.serialize = function () {
 
   return {
     size: this.size,
-    cells: cellState
+    cells: cellState,
+    blackHolePosition: this.blackHolePosition,
+    blackHoleTurns: this.blackHoleTurns
   };
 };
