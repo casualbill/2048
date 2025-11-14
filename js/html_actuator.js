@@ -20,6 +20,11 @@ HTMLActuator.prototype.actuate = function (grid, metadata) {
         }
       });
     });
+    
+    // 渲染黑洞格子
+    if (grid.blackHolePosition) {
+      self.addBlackHole(grid.blackHolePosition);
+    }
 
     self.updateScore(metadata.score);
     self.updateBestScore(metadata.bestScore);
@@ -33,6 +38,22 @@ HTMLActuator.prototype.actuate = function (grid, metadata) {
     }
 
   });
+};
+
+// 添加黑洞格子
+HTMLActuator.prototype.addBlackHole = function (position) {
+  var wrapper = document.createElement("div");
+  var blackHole = document.createElement("div");
+  var positionClass = this.positionClass(position);
+  
+  var classes = ["tile", positionClass];
+  this.applyClasses(wrapper, classes);
+  
+  blackHole.classList.add("black-hole");
+  wrapper.appendChild(blackHole);
+  
+  // Put the black hole on the board
+  this.tileContainer.appendChild(wrapper);
 };
 
 // Continues the game (both restart and keep playing)
@@ -58,11 +79,24 @@ HTMLActuator.prototype.addTile = function (tile) {
   var classes = ["tile", "tile-" + tile.value, positionClass];
 
   if (tile.value > 2048) classes.push("tile-super");
+  
+  // 冰冻数字视觉效果
+  if (tile.isFrozen) {
+    classes.push("tile-frozen");
+  }
 
   this.applyClasses(wrapper, classes);
 
   inner.classList.add("tile-inner");
   inner.textContent = tile.value;
+  
+  // 添加冰冻倒计时
+  if (tile.isFrozen && tile.freezeCountdown > 0) {
+    var countdown = document.createElement("div");
+    countdown.classList.add("tile-freeze-countdown");
+    countdown.textContent = tile.freezeCountdown;
+    wrapper.appendChild(countdown);
+  }
 
   if (tile.previousPosition) {
     // Make sure that the tile gets rendered in the previous position first
