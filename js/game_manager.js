@@ -5,10 +5,19 @@ function GameManager(size, InputManager, Actuator, StorageManager) {
   this.actuator       = new Actuator;
 
   this.startTiles     = 2;
+  this.aiMode         = 'none'; // 'none', 'auto', 'suggest', 'assist'
+  this.aiSpeed        = 'medium'; // 'fast', 'medium', 'slow'
+  this.aiStats        = { highestScore: 0, averageScore: 0, gamesPlayed: 0, achieved2048: 0 };
+  this.aiMoveCount    = 0;
+  this.aiCurrentMove  = null;
+  this.aiThinking     = false;
 
   this.inputManager.on("move", this.move.bind(this));
   this.inputManager.on("restart", this.restart.bind(this));
   this.inputManager.on("keepPlaying", this.keepPlaying.bind(this));
+
+  // Set up AI mode event listeners
+  this.setupAIControls();
 
   this.setup();
 }
@@ -26,10 +35,105 @@ GameManager.prototype.keepPlaying = function () {
   this.actuator.continueGame(); // Clear the game won/lost message
 };
 
-// Return true if the game is lost, or has won and the user hasn't kept playing
-GameManager.prototype.isGameTerminated = function () {
-  return this.over || (this.won && !this.keepPlaying);
+// Set up AI control event listeners
+GameManager.prototype.setupAIControls = function () {
+  // AI mode buttons
+  const aiAutoBtn = document.getElementById('ai-auto');
+  const aiSuggestBtn = document.getElementById('ai-suggest');
+  const aiAssistBtn = document.getElementById('ai-assist');
+  
+  if (aiAutoBtn) aiAutoBtn.addEventListener('click', () => this.setAIMode('auto'));
+  if (aiSuggestBtn) aiSuggestBtn.addEventListener('click', () => this.setAIMode('suggest'));
+  if (aiAssistBtn) aiAssistBtn.addEventListener('click', () => this.setAIMode('assist'));
+  
+  // AI speed buttons
+  const aiSpeedFastBtn = document.getElementById('ai-speed-fast');
+  const aiSpeedMediumBtn = document.getElementById('ai-speed-medium');
+  const aiSpeedSlowBtn = document.getElementById('ai-speed-slow');
+  
+  if (aiSpeedFastBtn) aiSpeedFastBtn.addEventListener('click', () => this.setAISpeed('fast'));
+  if (aiSpeedMediumBtn) aiSpeedMediumBtn.addEventListener('click', () => this.setAISpeed('medium'));
+  if (aiSpeedSlowBtn) aiSpeedSlowBtn.addEventListener('click', () => this.setAISpeed('slow'));
 };
+
+// Set AI mode
+GameManager.prototype.setAIMode = function (mode) {
+  this.aiMode = mode;
+  
+  // Update button states
+  document.querySelectorAll('.ai-mode-button').forEach(btn => btn.classList.remove('active'));
+  if (mode !== 'none') {
+    document.getElementById('ai-' + mode).classList.add('active');
+  }
+  
+  // Start AI auto play if mode is auto
+  if (mode === 'auto') {
+    this.startAIAutoPlay();
+  } else {
+    this.stopAIAutoPlay();
+  }
+  
+  console.log('AI mode set to:', mode);
+};
+
+// Set AI speed
+GameManager.prototype.setAISpeed = function (speed) {
+  this.aiSpeed = speed;
+  
+  // Update button states
+  document.querySelectorAll('.ai-speed-button').forEach(btn => btn.classList.remove('active'));
+  document.getElementById('ai-speed-' + speed).classList.add('active');
+  
+  console.log('AI speed set to:', speed);
+};
+
+// Start AI auto play
+GameManager.prototype.startAIAutoPlay = function () {
+  if (this.isGameTerminated()) return;
+  
+  this.aiThinking = true;
+  
+  // Get AI move
+  const board = this.grid.serialize().cells;
+  const move = getAIMove(board);
+  
+  // Convert move to direction
+  const direction = {
+    'up': 0,
+    'down': 1,
+    'left': 2,
+    'right': 3
+  }[move] || 0;
+  
+  // Make the move
+  const moved = this.move(direction);
+  
+  this.aiThinking = false;
+  
+  // If move was successful, continue auto play
+  if (moved) {
+    this.aiMoveCount++;
+    
+    // Calculate delay based on speed
+    const delay = {
+      'fast': 100,
+      'medium': 500,
+      'slow': 1000
+    }[this.aiSpeed] || 500;
+    
+    setTimeout(() => this.startAIAutoPlay(), delay);
+  }
+};
+
+// Stop AI auto play
+GameManager.prototype.stopAIAutoPlay = function () {
+  this.aiMode = 'none';
+};
+
+  // Return true if the game is lost, or has won and the user hasn't kept playing
+  GameManager.prototype.isGameTerminated = function () {
+    return this.over || (this.won && !this.keepPlaying);
+  };
 
 // Set up the game
 GameManager.prototype.setup = function () {
@@ -126,84 +230,18 @@ GameManager.prototype.moveTile = function (tile, cell) {
   tile.updatePosition(cell);
 };
 
-// Move tiles on the grid in the specified direction
-GameManager.prototype.move = function (direction) {
-  // 0: up, 1: right, 2: down, 3: left
-  var self = this;
-
-  if (this.isGameTerminated()) return; // Don't do anything if the game's over
-
-  var cell, tile;
-
-  var vector     = this.getVector(direction);
-  var traversals = this.buildTraversals(vector);
-  var moved      = false;
-
-  // Save the current tile positions and remove merger information
-  this.prepareTiles();
-
-  // Traverse the grid in the right direction and move tiles
-  traversals.x.forEach(function (x) {
-    traversals.y.forEach(function (y) {
-      cell = { x: x, y: y };
-      tile = self.grid.cellContent(cell);
-
-      if (tile) {
-        var positions = self.findFarthestPosition(cell, vector);
-        var next      = self.grid.cellContent(positions.next);
-
-        // Only one merger per row traversal?
-        if (next && next.value === tile.value && !next.mergedFrom) {
-          var merged = new Tile(positions.next, tile.value * 2);
-          merged.mergedFrom = [tile, next];
-
-          self.grid.insertTile(merged);
-          self.grid.removeTile(tile);
-
-          // Converge the two tiles' positions
-          tile.updatePosition(positions.next);
-
-          // Update the score
-          self.score += merged.value;
-
-          // The mighty 2048 tile
-          if (merged.value === 2048) self.won = true;
-        } else {
-          self.moveTile(tile, positions.farthest);
-        }
-
-        if (!self.positionsEqual(cell, tile)) {
-          moved = true; // The tile moved from its original cell!
-        }
-      }
-    });
-  });
-
-  if (moved) {
-    this.addRandomTile();
-
-    if (!this.movesAvailable()) {
-      this.over = true; // Game over!
-    }
-
-    this.actuate();
-  }
-};
-
-// Get the vector representing the chosen direction
 GameManager.prototype.getVector = function (direction) {
-  // Vectors representing tile movement
+  // Vectors representing tile movement directions
   var map = {
-    0: { x: 0,  y: -1 }, // Up
-    1: { x: 1,  y: 0 },  // Right
-    2: { x: 0,  y: 1 },  // Down
-    3: { x: -1, y: 0 }   // Left
+    0: { x: 0, y: -1 }, // up
+    1: { x: 1, y: 0 },  // right
+    2: { x: 0, y: 1 },  // down
+    3: { x: -1, y: 0 }  // left
   };
-
+  
   return map[direction];
 };
 
-// Build a list of positions to traverse in the right order
 GameManager.prototype.buildTraversals = function (vector) {
   var traversals = { x: [], y: [] };
 
@@ -263,10 +301,9 @@ GameManager.prototype.tileMatchesAvailable = function () {
       }
     }
   }
-
-  return false;
 };
 
 GameManager.prototype.positionsEqual = function (first, second) {
   return first.x === second.x && first.y === second.y;
 };
+
