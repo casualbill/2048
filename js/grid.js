@@ -11,6 +11,10 @@ Grid.prototype.empty = function () {
     var row = cells[x] = [];
 
     for (var y = 0; y < this.size; y++) {
+      var cell = document.createElement('div');
+      cell.className = 'grid-cell';
+      cell.dataset.x = x;
+      cell.dataset.y = y;
       row.push(null);
     }
   }

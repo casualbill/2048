@@ -1,0 +1,149 @@
+.power-ups {
+  margin: 20px 0;
+  text-align: center;
+}
+
+.power-up {
+  display: inline-block;
+  margin: 0 10px;
+  padding: 10px 15px;
+  background: #bbada0;
+  border-radius: 6px;
+  color: white;
+  cursor: pointer;
+  font-size: 24px;
+  position: relative;
+  transition: all 0.2s ease;
+  user-select: none;
+}
+
+.power-up:hover {
+  transform: scale(1.1);
+  background: #8f7a66;
+}
+
+.power-up.disabled {
+  background: #d8d4d0;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.power-up-icon {
+  display: block;
+  font-size: 32px;
+}
+
+.power-up-count {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  background: #ff6b6b;
+  color: white;
+  border-radius: 50%;
+  width: 20px;
+  height: 20px;
+  font-size: 14px;
+  line-height: 20px;
+  text-align: center;
+  font-weight: bold;
+}
+
+/* 道具选择模式 */
+.grid-cell.selected-red {
+  box-shadow: 0 0 20px red;
+  animation: pulse-red 0.5s infinite;
+}
+
+.grid-cell.selected-blue {
+  box-shadow: 0 0 20px blue;
+  animation: pulse-blue 0.5s infinite;
+}
+
+@keyframes pulse-red {
+  0% { box-shadow: 0 0 20px red; }
+  50% { box-shadow: 0 0 40px red; }
+  100% { box-shadow: 0 0 20px red; }
+}
+
+@keyframes pulse-blue {
+  0% { box-shadow: 0 0 20px blue; }
+  50% { box-shadow: 0 0 40px blue; }
+  100% { box-shadow: 0 0 20px blue; }
+}
+
+/* 倒计时动画 */
+.timer-bomb {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  background: rgba(255, 0, 0, 0.8);
+  color: white;
+  border-radius: 50%;
+  width: 25px;
+  height: 25px;
+  font-size: 16px;
+  line-height: 25px;
+  text-align: center;
+  font-weight: bold;
+  animation: flash 1s infinite;
+}
+
+@keyframes flash {
+  0% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+/* 爆炸动画 */
+@keyframes explode {
+  0% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.5); opacity: 0.5; }
+  100% { transform: scale(0); opacity: 0; }
+}
+
+.tile.exploding {
+  animation: explode 0.5s ease-out forwards;
+}
+
+/* 准星动画 */
+.crosshair {
+  position: absolute;
+  width: 100px;
+  height: 100px;
+  border: 3px solid red;
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 1000;
+  animation: pulse-crosshair 0.5s infinite;
+}
+
+@keyframes pulse-crosshair {
+  0% { transform: scale(1); opacity: 1; }
+  100% { transform: scale(1.2); opacity: 0; }
+}
+
+/* 闪电效果 */
+.lightning {
+  position: absolute;
+  pointer-events: none;
+  z-index: 1000;
+  stroke: blue;
+  stroke-width: 3;
+  fill: none;
+  animation: flash 0.5s ease-out;
+}
+
+@keyframes flash {
+  0% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+/* 抖动效果 */
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-5px); }
+  75% { transform: translateX(5px); }
+}
+
+.tile.shaking {
+  animation: shake 0.5s ease-in-out;
+}
