@@ -68,10 +68,14 @@ KeyboardInputManager.prototype.listen = function () {
     }
   });
 
-  // Respond to button presses
-  this.bindButtonPress(".retry-button", this.restart);
-  this.bindButtonPress(".restart-button", this.restart);
-  this.bindButtonPress(".keep-playing-button", this.keepPlaying);
+  // Respond to button presses - handled by CanvasActuator
+  this.on("buttonClick", function(buttonId) {
+    if (buttonId === "restart") {
+      this.restart();
+    } else if (buttonId === "keepPlaying") {
+      this.keepPlaying();
+    }
+  }.bind(this));
 
   // Respond to swipe events
   var touchStartClientX, touchStartClientY;
@@ -128,12 +132,12 @@ KeyboardInputManager.prototype.listen = function () {
 };
 
 KeyboardInputManager.prototype.restart = function (event) {
-  event.preventDefault();
+  if (event) event.preventDefault();
   this.emit("restart");
 };
 
 KeyboardInputManager.prototype.keepPlaying = function (event) {
-  event.preventDefault();
+  if (event) event.preventDefault();
   this.emit("keepPlaying");
 };
 

@@ -9,6 +9,10 @@ function GameManager(size, InputManager, Actuator, StorageManager) {
   this.inputManager.on("move", this.move.bind(this));
   this.inputManager.on("restart", this.restart.bind(this));
   this.inputManager.on("keepPlaying", this.keepPlaying.bind(this));
+  
+  // Listen to events from the actuator
+  this.actuator.on("restart", this.restart.bind(this));
+  this.actuator.on("keepPlaying", this.keepPlaying.bind(this));
 
   this.setup();
 }
@@ -70,6 +74,7 @@ GameManager.prototype.addRandomTile = function () {
   if (this.grid.cellsAvailable()) {
     var value = Math.random() < 0.9 ? 2 : 4;
     var tile = new Tile(this.grid.randomAvailableCell(), value);
+    tile.appearStartTime = Date.now();
 
     this.grid.insertTile(tile);
   }
@@ -115,6 +120,7 @@ GameManager.prototype.prepareTiles = function () {
     if (tile) {
       tile.mergedFrom = null;
       tile.savePosition();
+      tile.resetAnimationState();
     }
   });
 };
@@ -124,6 +130,7 @@ GameManager.prototype.moveTile = function (tile, cell) {
   this.grid.cells[tile.x][tile.y] = null;
   this.grid.cells[cell.x][cell.y] = tile;
   tile.updatePosition(cell);
+  tile.moveStartTime = Date.now();
 };
 
 // Move tiles on the grid in the specified direction
@@ -156,6 +163,7 @@ GameManager.prototype.move = function (direction) {
         if (next && next.value === tile.value && !next.mergedFrom) {
           var merged = new Tile(positions.next, tile.value * 2);
           merged.mergedFrom = [tile, next];
+          merged.mergeStartTime = Date.now();
 
           self.grid.insertTile(merged);
           self.grid.removeTile(tile);

@@ -5,6 +5,11 @@ function Tile(position, value) {
 
   this.previousPosition = null;
   this.mergedFrom       = null; // Tracks tiles that merged together
+  
+  // Animation properties
+  this.appearStartTime  = null;
+  this.mergeStartTime   = null;
+  this.moveStartTime    = null;
 }
 
 Tile.prototype.savePosition = function () {
@@ -16,6 +21,12 @@ Tile.prototype.updatePosition = function (position) {
   this.y = position.y;
 };
 
+Tile.prototype.resetAnimationState = function() {
+  this.appearStartTime = null;
+  this.mergeStartTime = null;
+  this.moveStartTime = null;
+};
+
 Tile.prototype.serialize = function () {
   return {
     position: {
@@ -24,4 +35,14 @@ Tile.prototype.serialize = function () {
     },
     value: this.value
   };
+};
+
+Tile.prototype.deserialize = function (data) {
+  this.x = data.position.x;
+  this.y = data.position.y;
+  this.value = data.value;
+  
+  this.previousPosition = null;
+  this.mergedFrom = null;
+  this.resetAnimationState();
 };
