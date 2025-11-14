@@ -3,6 +3,16 @@ function HTMLActuator() {
   this.scoreContainer   = document.querySelector(".score-container");
   this.bestContainer    = document.querySelector(".best-container");
   this.messageContainer = document.querySelector(".game-message");
+  
+  // Create wall container if it doesn't exist
+  this.wallContainer = document.querySelector(".wall-container");
+  if (!this.wallContainer) {
+    this.wallContainer = document.createElement("div");
+    this.wallContainer.className = "wall-container";
+    var gameContainer = document.querySelector(".game-container");
+    var gridContainer = document.querySelector(".grid-container");
+    gameContainer.insertBefore(this.wallContainer, gridContainer.nextSibling);
+  }
 
   this.score = 0;
 }
@@ -12,6 +22,7 @@ HTMLActuator.prototype.actuate = function (grid, metadata) {
 
   window.requestAnimationFrame(function () {
     self.clearContainer(self.tileContainer);
+    self.clearContainer(self.wallContainer);
 
     grid.cells.forEach(function (column) {
       column.forEach(function (cell) {
@@ -20,6 +31,13 @@ HTMLActuator.prototype.actuate = function (grid, metadata) {
         }
       });
     });
+
+    // Render walls for maze mode
+    if (metadata.gameMode === 'maze' && metadata.walls) {
+      metadata.walls.forEach(function (wall) {
+        self.addWall(wall);
+      });
+    }
 
     self.updateScore(metadata.score);
     self.updateBestScore(metadata.bestScore);
@@ -33,7 +51,7 @@ HTMLActuator.prototype.actuate = function (grid, metadata) {
     }
 
   });
-};
+}
 
 // Continues the game (both restart and keep playing)
 HTMLActuator.prototype.continueGame = function () {
@@ -130,6 +148,29 @@ HTMLActuator.prototype.message = function (won) {
 
   this.messageContainer.classList.add(type);
   this.messageContainer.getElementsByTagName("p")[0].textContent = message;
+};
+
+HTMLActuator.prototype.addWall = function (wall) {
+  var wallElement = document.createElement("div");
+  wallElement.className = "wall " + wall.type;
+  
+  // Calculate wall dimensions and position
+  var cellSize = 106.25;
+  var cellGap = 15;
+  
+  if (wall.type === 'horizontal') {
+    wallElement.style.width = (wall.length * (cellSize + cellGap) + cellGap) + "px";
+    wallElement.style.height = "10px";
+    wallElement.style.top = (wall.y + 1) * (cellSize + cellGap) - 5 + "px";
+    wallElement.style.left = wall.x * (cellSize + cellGap) + "px";
+  } else if (wall.type === 'vertical') {
+    wallElement.style.height = (wall.length * (cellSize + cellGap) + cellGap) + "px";
+    wallElement.style.width = "10px";
+    wallElement.style.left = (wall.x + 1) * (cellSize + cellGap) - 5 + "px";
+    wallElement.style.top = wall.y * (cellSize + cellGap) + "px";
+  }
+  
+  this.wallContainer.appendChild(wallElement);
 };
 
 HTMLActuator.prototype.clearMessage = function () {
