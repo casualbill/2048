@@ -126,6 +126,85 @@ GameManager.prototype.moveTile = function (tile, cell) {
   tile.updatePosition(cell);
 };
 
+// Generate walls for maze mode
+GameManager.prototype.generateWalls = function () {
+  // Clear existing walls
+  this.walls = [];
+  
+  // Generate 2-3 walls per game
+  var wallCount = Math.floor(Math.random() * 2) + 2;
+  
+  for (var i = 0; i < wallCount; i++) {
+    var isHorizontal = Math.random() < 0.5;
+    var length = Math.floor(Math.random() * 3) + 1;
+    
+    if (isHorizontal) {
+      // Horizontal wall
+      var x = Math.floor(Math.random() * (this.size - 1));
+      var y = Math.floor(Math.random() * (this.size - 1));
+      this.walls.push({ type: 'horizontal', x: x, y: y, length: length });
+    } else {
+      // Vertical wall
+      var x = Math.floor(Math.random() * (this.size - 1));
+      var y = Math.floor(Math.random() * (this.size - 1));
+      this.walls.push({ type: 'vertical', x: x, y: y, length: length });
+    }
+  }
+};
+
+// Check if there's a wall blocking the movement
+GameManager.prototype.isWallBlocking = function (from, to) {
+  if (this.gameMode !== 'maze' || this.walls.length === 0) {
+    return false;
+  }
+  
+  for (var i = 0; i < this.walls.length; i++) {
+    var wall = this.walls[i];
+    
+    if (wall.type === 'horizontal') {
+      // Check if movement is vertical and crosses the wall
+      if (from.x >= wall.x && from.x < wall.x + wall.length) {
+        if ((from.y < wall.y && to.y > wall.y) || (from.y > wall.y && to.y < wall.y)) {
+          return true;
+        }
+      }
+    } else if (wall.type === 'vertical') {
+      // Check if movement is horizontal and crosses the wall
+      if (from.y >= wall.y && from.y < wall.y + wall.length) {
+        if ((from.x < wall.x && to.x > wall.x) || (from.x > wall.x && to.x < wall.x)) {
+          return true;
+        }
+      }
+    }
+  }
+  
+  return false;
+};
+
+// Find the farthest position a tile can move to, considering walls
+GameManager.prototype.findFarthestPosition = function (cell, vector) {
+  var previous;
+  var next;
+
+  // Progress towards the vector direction until an obstacle is found
+  do {
+    previous = cell;
+    cell     = { x: previous.x + vector.x, y: previous.y + vector.y };
+  } while (this.grid.withinBounds(cell) && this.grid.cellAvailable(cell) && !this.isWallBlocking(previous, cell));
+
+  // Check if the next cell is available and not blocked by a wall
+  if (this.grid.withinBounds(cell) && !this.isWallBlocking(previous, cell)) {
+    next = cell;
+  } else {
+    next = null;
+  }
+
+  return {
+    farthest: previous,
+    next: next // Used to check if a merge is required
+  };
+};
+
 // Move tiles on the grid in the specified direction
 GameManager.prototype.move = function (direction) {
   // 0: up, 1: right, 2: down, 3: left
@@ -153,7 +232,7 @@ GameManager.prototype.move = function (direction) {
         var next      = self.grid.cellContent(positions.next);
 
         // Only one merger per row traversal?
-        if (next && next.value === tile.value && !next.mergedFrom) {
+        if (next && next.value === tile.value && !next.mergedFrom && !self.isWallBlocking(positions.farthest, positions.next)) {
           var merged = new Tile(positions.next, tile.value * 2);
           merged.mergedFrom = [tile, next];
 
@@ -185,21 +264,17 @@ GameManager.prototype.move = function (direction) {
     if (!this.movesAvailable()) {
       this.over = true; // Game over!
     }
-
     this.actuate();
   }
 };
 
-// Get the vector representing the chosen direction
 GameManager.prototype.getVector = function (direction) {
-  // Vectors representing tile movement
   var map = {
     0: { x: 0,  y: -1 }, // Up
     1: { x: 1,  y: 0 },  // Right
     2: { x: 0,  y: 1 },  // Down
     3: { x: -1, y: 0 }   // Left
   };
-
   return map[direction];
 };
 
@@ -219,21 +294,8 @@ GameManager.prototype.buildTraversals = function (vector) {
   return traversals;
 };
 
-GameManager.prototype.findFarthestPosition = function (cell, vector) {
-  var previous;
-
-  // Progress towards the vector direction until an obstacle is found
-  do {
-    previous = cell;
-    cell     = { x: previous.x + vector.x, y: previous.y + vector.y };
-  } while (this.grid.withinBounds(cell) &&
-           this.grid.cellAvailable(cell));
-
-  return {
-    farthest: previous,
-    next: cell // Used to check if a merge is required
-  };
-};
+// Original findFarthestPosition is replaced with the one that includes wall checking
+// This method is now defined earlier in the file with wall collision detection
 
 GameManager.prototype.movesAvailable = function () {
   return this.grid.cellsAvailable() || this.tileMatchesAvailable();
@@ -256,7 +318,7 @@ GameManager.prototype.tileMatchesAvailable = function () {
 
           var other  = self.grid.cellContent(cell);
 
-          if (other && other.value === tile.value) {
+          if (other && other.value === tile.value && !this.isWallBlocking({x: x, y: y}, cell)) {
             return true; // These two tiles can be merged
           }
         }

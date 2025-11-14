@@ -19,8 +19,10 @@ window.fakeStorage = {
 };
 
 function LocalStorageManager() {
-  this.bestScoreKey     = "bestScore";
-  this.gameStateKey     = "gameState";
+  this.bestScoreKeyClassic     = "bestScoreClassic";
+  this.bestScoreKeyMaze        = "bestScoreMaze";
+  this.gameStateKey            = "gameState";
+  this.gameModeKey             = "gameMode";
 
   var supported = this.localStorageSupported();
   this.storage = supported ? window.localStorage : window.fakeStorage;
@@ -40,12 +42,29 @@ LocalStorageManager.prototype.localStorageSupported = function () {
 };
 
 // Best score getters/setters
-LocalStorageManager.prototype.getBestScore = function () {
-  return this.storage.getItem(this.bestScoreKey) || 0;
+LocalStorageManager.prototype.getBestScore = function (mode) {
+  if (mode === 'maze') {
+    return this.storage.getItem(this.bestScoreKeyMaze) || 0;
+  } else {
+    return this.storage.getItem(this.bestScoreKeyClassic) || 0;
+  }
 };
 
-LocalStorageManager.prototype.setBestScore = function (score) {
-  this.storage.setItem(this.bestScoreKey, score);
+LocalStorageManager.prototype.setBestScore = function (score, mode) {
+  if (mode === 'maze') {
+    this.storage.setItem(this.bestScoreKeyMaze, score);
+  } else {
+    this.storage.setItem(this.bestScoreKeyClassic, score);
+  }
+};
+
+// Game mode getters/setters
+LocalStorageManager.prototype.getGameMode = function () {
+  return this.storage.getItem(this.gameModeKey) || 'classic';
+};
+
+LocalStorageManager.prototype.setGameMode = function (mode) {
+  this.storage.setItem(this.gameModeKey, mode);
 };
 
 // Game state getters/setters and clearing
