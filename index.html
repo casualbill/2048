@@ -29,6 +29,7 @@
     <div class="above-game">
       <p class="game-intro">Join the numbers and get to the <strong>2048 tile!</strong></p>
       <a class="restart-button">New Game</a>
+      <a class="multiplayer-button">Multiplayer</a>
     </div>
 
     <div class="game-container">
@@ -85,6 +86,68 @@
     </p>
   </div>
 
+  <!-- Multiplayer Modal -->
+  <div id="multiplayer-modal" class="modal">
+    <div class="modal-content">
+      <span class="close-modal">&times;</span>
+      <h2>Multiplayer</h2>
+      <div class="modal-buttons">
+        <button id="create-room-btn">Create Room</button>
+        <button id="join-room-btn">Join Room</button>
+        <button id="spectate-btn">Spectate</button>
+      </div>
+      
+      <!-- Create Room Form -->
+      <div id="create-room-form" class="form-container">
+        <h3>Create Room</h3>
+        <div class="form-group">
+          <label>Mode:</label>
+          <select id="room-mode">
+            <option value="race">Race Mode</option>
+            <option value="timed">Timed Mode</option>
+            <option value="elimination">Elimination Mode</option>
+            <option value="team">Team Mode</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Password (optional):</label>
+          <input type="password" id="room-password">
+        </div>
+        <button id="create-room-submit">Create</button>
+      </div>
+      
+      <!-- Join Room Form -->
+      <div id="join-room-form" class="form-container">
+        <h3>Join Room</h3>
+        <div class="form-group">
+          <label>Room ID:</label>
+          <input type="text" id="join-room-id">
+        </div>
+        <div class="form-group">
+          <label>Password (if any):</label>
+          <input type="password" id="join-room-password">
+        </div>
+        <button id="join-room-submit">Join</button>
+      </div>
+      
+      <!-- Spectate Form -->
+      <div id="spectate-form" class="form-container">
+        <h3>Spectate Room</h3>
+        <div class="form-group">
+          <label>Room ID:</label>
+          <input type="text" id="spectate-room-id">
+        </div>
+        <button id="spectate-submit">Spectate</button>
+      </div>
+      
+      <!-- Room List -->
+      <div id="room-list" class="room-list">
+        <h3>Available Rooms</h3>
+        <div id="rooms-container"></div>
+      </div>
+    </div>
+  </div>
+
   <script src="js/bind_polyfill.js"></script>
   <script src="js/classlist_polyfill.js"></script>
   <script src="js/animframe_polyfill.js"></script>
@@ -94,6 +157,7 @@
   <script src="js/tile.js"></script>
   <script src="js/local_storage_manager.js"></script>
   <script src="js/game_manager.js"></script>
+  <script src="js/multiplayer.js"></script>
   <script src="js/application.js"></script>
 </body>
 </html>

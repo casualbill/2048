@@ -184,9 +184,18 @@ GameManager.prototype.move = function (direction) {
 
     if (!this.movesAvailable()) {
       this.over = true; // Game over!
+      if (this.multiplayerManager) {
+        this.multiplayerManager.gameOver('lost');
+      }
     }
 
     this.actuate();
+    
+    // Send move to multiplayer server
+    if (this.multiplayerManager) {
+      this.multiplayerManager.sendMove(direction);
+      this.multiplayerManager.updateScore(this.score);
+    }
   }
 };
 

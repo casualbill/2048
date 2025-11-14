@@ -1,0 +1,9 @@
+version: '3'
+
+services:
+  2048-server:
+    build: .
+    ports:
+      - "8765:8765"
+    restart: always
+    container_name: 2048-multiplayer-server
