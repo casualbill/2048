@@ -53,6 +53,10 @@ GameManager.prototype.setup = function () {
     // Add the initial tiles
     this.addStartTiles();
   }
+  
+  // Initialize operation history
+  this.operationHistory = [];
+  this.startTime = Date.now();
 
   // Update the actuator
   this.actuate();
@@ -134,6 +138,7 @@ GameManager.prototype.move = function (direction) {
   if (this.isGameTerminated()) return; // Don't do anything if the game's over
 
   var cell, tile;
+  var prevScore = this.score;
 
   var vector     = this.getVector(direction);
   var traversals = this.buildTraversals(vector);
@@ -180,10 +185,23 @@ GameManager.prototype.move = function (direction) {
   });
 
   if (moved) {
+    // Record the operation
+    var operation = {
+      direction: direction,
+      timestamp: Date.now(),
+      score: this.score,
+      scoreChange: (this.score - prevScore),
+      gameTime: Date.now() - this.startTime
+    };
+    this.operationHistory.push(operation);
+    
     this.addRandomTile();
 
     if (!this.movesAvailable()) {
       this.over = true; // Game over!
+      this.gameTime = Date.now() - this.startTime;
+      // Upload game record when game over
+      this.uploadGameRecord();
     }
 
     this.actuate();
@@ -269,4 +287,40 @@ GameManager.prototype.tileMatchesAvailable = function () {
 
 GameManager.prototype.positionsEqual = function (first, second) {
   return first.x === second.x && first.y === second.y;
+};
+
+// Upload game record to backend
+GameManager.prototype.uploadGameRecord = function () {
+  // Get player name from storage or generate a random one
+  var playerName = this.storageManager.getItem('playerName') || 'Anonymous_' + Math.random().toString(36).substr(2, 9);
+  
+  var gameRecord = {
+    player_name: playerName,
+    score: this.score,
+    game_time: this.gameTime,
+    operations: this.operationHistory,
+    size: this.size,
+    won: this.won,
+    over: this.over
+  };
+  
+  // Send to backend API
+  fetch('http://localhost:8080/api/v1/game/record', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(gameRecord),
+  })
+  .then(response => response.json())
+  .then(data => {
+    console.log('Game record uploaded successfully:', data);
+    // Refresh leaderboard data
+    if (window.Leaderboard) {
+      window.Leaderboard.refresh();
+    }
+  })
+  .catch((error) => {
+    console.error('Error uploading game record:', error);
+  });
 };
