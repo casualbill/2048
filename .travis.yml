@@ -1,0 +1,54 @@
+language: go
+go: "1.21"
+
+# Only trigger CI on main branch
+branches:
+  only:
+    - main
+
+services:
+  - docker
+  - postgresql
+  - redis-server
+
+before_install:
+  # Create database
+  - psql -c "CREATE DATABASE 2048game;" -U postgres
+  - psql -c "CREATE USER postgres WITH PASSWORD 'postgres';" -U postgres
+  - psql -c "GRANT ALL PRIVILEGES ON DATABASE 2048game TO postgres;" -U postgres
+
+  # Start Redis
+  - redis-server --daemonize yes
+
+install:
+  # Install frontend dependencies (if any)
+  # - cd frontend && npm install
+
+  # Install backend dependencies
+  - cd backend && go mod download
+
+before_script:
+  # Wait for services to be ready
+  - sleep 5
+
+script:
+  # Frontend tests (if any)
+  # - cd frontend && npm test
+
+  # Backend tests
+  - cd backend && go test -v ./...
+
+  # Build Docker images
+  - docker-compose build
+
+# Deploy (optional, configure based on your hosting)
+deploy:
+  provider: heroku
+  app: your-heroku-app-name
+  api_key:
+    secure: your-encrypted-api-key
+  on:
+    branch: main
+
+notifications:
+  email: false
