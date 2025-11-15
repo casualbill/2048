@@ -3,6 +3,7 @@ function GameManager(size, InputManager, Actuator, StorageManager) {
   this.inputManager   = new InputManager;
   this.storageManager = new StorageManager;
   this.actuator       = new Actuator;
+  this.customMap      = null;
 
   this.startTiles     = 2;
 
@@ -37,14 +38,18 @@ GameManager.prototype.setup = function () {
 
   // Reload the game from a previous game if present
   if (previousState) {
-    this.grid        = new Grid(previousState.grid.size,
-                                previousState.grid.cells); // Reload grid
+    this.grid        = new Grid(previousState.grid.size, previousState.grid.enabledGrid, previousState.grid.cells); // Reload grid
     this.score       = previousState.score;
     this.over        = previousState.over;
     this.won         = previousState.won;
     this.keepPlaying = previousState.keepPlaying;
+    this.customMap   = previousState.customMap;
   } else {
-    this.grid        = new Grid(this.size);
+    if (this.customMap) {
+      this.grid        = new Grid(this.customMap.size, this.customMap.enabledGrid);
+    } else {
+      this.grid        = new Grid(this.size);
+    }
     this.score       = 0;
     this.over        = false;
     this.won         = false;
@@ -56,6 +61,13 @@ GameManager.prototype.setup = function () {
 
   // Update the actuator
   this.actuate();
+};
+
+// Use custom map
+GameManager.prototype.useCustomMap = function (map) {
+  this.customMap = map;
+  this.size = map.size;
+  this.restart();
 };
 
 // Set up the initial tiles to start the game with
@@ -100,12 +112,16 @@ GameManager.prototype.actuate = function () {
 
 // Represent the current game as an object
 GameManager.prototype.serialize = function () {
+  var gridState = this.grid.serialize();
+  gridState.enabledGrid = this.grid.enabledGrid;
+  
   return {
-    grid:        this.grid.serialize(),
+    grid:        gridState,
     score:       this.score,
     over:        this.over,
     won:         this.won,
-    keepPlaying: this.keepPlaying
+    keepPlaying: this.keepPlaying,
+    customMap:   this.customMap
   };
 };
 
@@ -254,10 +270,11 @@ GameManager.prototype.tileMatchesAvailable = function () {
           var vector = self.getVector(direction);
           var cell   = { x: x + vector.x, y: y + vector.y };
 
-          var other  = self.grid.cellContent(cell);
-
-          if (other && other.value === tile.value) {
-            return true; // These two tiles can be merged
+          if (this.grid.isCellEnabled(cell.x, cell.y)) {
+            var other  = self.grid.cellContent(cell);
+            if (other && other.value === tile.value) {
+              return true; // These two tiles can be merged
+            }
           }
         }
       }

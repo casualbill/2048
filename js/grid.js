@@ -1,9 +1,21 @@
-function Grid(size, previousState) {
+function Grid(size, enabledGrid, previousState) {
   this.size = size;
+  this.enabledGrid = enabledGrid || this.getDefaultEnabledGrid();
   this.cells = previousState ? this.fromState(previousState) : this.empty();
 }
 
 // Build a grid of the specified size
+Grid.prototype.getDefaultEnabledGrid = function () {
+  var grid = [];
+  for (var x = 0; x < this.size; x++) {
+    grid[x] = [];
+    for (var y = 0; y < this.size; y++) {
+      grid[x][y] = true;
+    }
+  }
+  return grid;
+};
+
 Grid.prototype.empty = function () {
   var cells = [];
 
@@ -46,10 +58,10 @@ Grid.prototype.availableCells = function () {
   var cells = [];
 
   this.eachCell(function (x, y, tile) {
-    if (!tile) {
+    if (this.enabledGrid[x][y] && !tile) {
       cells.push({ x: x, y: y });
     }
-  });
+  }.bind(this));
 
   return cells;
 };
@@ -68,9 +80,16 @@ Grid.prototype.cellsAvailable = function () {
   return !!this.availableCells().length;
 };
 
+Grid.prototype.isCellEnabled = function (x, y) {
+  if (x < 0 || x >= this.size || y < 0 || y >= this.size) {
+    return false;
+  }
+  return this.enabledGrid[x][y];
+};
+
 // Check if the specified cell is taken
 Grid.prototype.cellAvailable = function (cell) {
-  return !this.cellOccupied(cell);
+  return this.isCellEnabled(cell.x, cell.y) && !this.cellOccupied(cell);
 };
 
 Grid.prototype.cellOccupied = function (cell) {
