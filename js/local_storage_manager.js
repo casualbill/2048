@@ -21,6 +21,7 @@ window.fakeStorage = {
 function LocalStorageManager() {
   this.bestScoreKey     = "bestScore";
   this.gameStateKey     = "gameState";
+  this.customMapKey     = "customMap";
 
   var supported = this.localStorageSupported();
   this.storage = supported ? window.localStorage : window.fakeStorage;
@@ -60,4 +61,18 @@ LocalStorageManager.prototype.setGameState = function (gameState) {
 
 LocalStorageManager.prototype.clearGameState = function () {
   this.storage.removeItem(this.gameStateKey);
+};
+
+// Custom map getters/setters
+LocalStorageManager.prototype.getCustomMap = function () {
+  var mapJSON = this.storage.getItem(this.customMapKey);
+  return mapJSON ? JSON.parse(mapJSON) : null;
+};
+
+LocalStorageManager.prototype.setCustomMap = function (map) {
+  this.storage.setItem(this.customMapKey, JSON.stringify(map));
+};
+
+LocalStorageManager.prototype.clearCustomMap = function () {
+  this.storage.removeItem(this.customMapKey);
 };
