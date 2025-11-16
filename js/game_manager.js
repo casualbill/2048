@@ -1,17 +1,35 @@
-function GameManager(size, InputManager, Actuator, StorageManager) {
+function GameManager(size, InputManager, Actuator, StorageManager, shape) {
   this.size           = size; // Size of the grid
+  this.shape          = shape || 'square'; // Board shape
   this.inputManager   = new InputManager;
   this.storageManager = new StorageManager;
   this.actuator       = new Actuator;
 
   this.startTiles     = 2;
-
-  this.inputManager.on("move", this.move.bind(this));
-  this.inputManager.on("restart", this.restart.bind(this));
-  this.inputManager.on("keepPlaying", this.keepPlaying.bind(this));
-
-  this.setup();
-}
+  
+  // 根据形状调整棋盘大小
+  this.adjustSizeForShape();
+// 根据形状调整棋盘大小
+GameManager.prototype.adjustSizeForShape = function() {
+  switch (this.shape) {
+    case 'diamond':
+      this.size = 7; // 7行，1-2-3-4-3-2-1分布
+      break;
+    case 'circle':
+      this.size = 5; // 5x5网格，实现同心圆布局
+      break;
+    case 'trapezoid':
+      this.size = 6; // 6列，实现5行2-3-4-5-6分布
+      break;
+    case 'square-ring':
+      this.size = 5; // 5x5网格，实现回字形
+      break;
+    // 默认方形
+    default:
+      this.size = 4; // 4x4标准方形
+      break;
+  }
+};
 
 // Restart the game
 GameManager.prototype.restart = function () {
@@ -37,14 +55,14 @@ GameManager.prototype.setup = function () {
 
   // Reload the game from a previous game if present
   if (previousState) {
-    this.grid        = new Grid(previousState.grid.size,
-                                previousState.grid.cells); // Reload grid
+    this.grid        = new Grid(previousState.grid.size, previousState.grid.shape, previousState.grid.cells); // Reload grid
     this.score       = previousState.score;
     this.over        = previousState.over;
     this.won         = previousState.won;
     this.keepPlaying = previousState.keepPlaying;
+    this.shape       = previousState.grid.shape;
   } else {
-    this.grid        = new Grid(this.size);
+    this.grid        = new Grid(this.size, this.shape);
     this.score       = 0;
     this.over        = false;
     this.won         = false;
@@ -77,8 +95,8 @@ GameManager.prototype.addRandomTile = function () {
 
 // Sends the updated grid to the actuator
 GameManager.prototype.actuate = function () {
-  if (this.storageManager.getBestScore() < this.score) {
-    this.storageManager.setBestScore(this.score);
+  if (this.storageManager.getBestScore(this.shape) < this.score) {
+    this.storageManager.setBestScore(this.score, this.shape);
   }
 
   // Clear the state when the game is over (game over only, not win)
@@ -92,7 +110,7 @@ GameManager.prototype.actuate = function () {
     score:      this.score,
     over:       this.over,
     won:        this.won,
-    bestScore:  this.storageManager.getBestScore(),
+    bestScore:  this.storageManager.getBestScore(this.shape),
     terminated: this.isGameTerminated()
   });
 
@@ -101,10 +119,14 @@ GameManager.prototype.actuate = function () {
 // Represent the current game as an object
 GameManager.prototype.serialize = function () {
   return {
-    grid:        this.grid.serialize(),
-    score:       this.score,
-    over:        this.over,
-    won:         this.won,
+    grid: {
+      size: this.grid.size,
+      shape: this.grid.shape,
+      cells: this.grid.cells
+    },
+    score: this.score,
+    over: this.over,
+    won: this.won,
     keepPlaying: this.keepPlaying
   };
 };
@@ -168,12 +190,14 @@ GameManager.prototype.move = function (direction) {
 
           // The mighty 2048 tile
           if (merged.value === 2048) self.won = true;
+
+          moved = true;
         } else {
           self.moveTile(tile, positions.farthest);
         }
 
         if (!self.positionsEqual(cell, tile)) {
-          moved = true; // The tile moved from its original cell!
+          moved = true;
         }
       }
     });
@@ -199,7 +223,6 @@ GameManager.prototype.getVector = function (direction) {
     2: { x: 0,  y: 1 },  // Down
     3: { x: -1, y: 0 }   // Left
   };
-
   return map[direction];
 };
 
