@@ -55,14 +55,34 @@ HTMLActuator.prototype.addTile = function (tile) {
   var positionClass = this.positionClass(position);
 
   // We can't use classlist because it somehow glitches when replacing classes
-  var classes = ["tile", "tile-" + tile.value, positionClass];
-
-  if (tile.value > 2048) classes.push("tile-super");
+  var classes = ["tile", positionClass];
+  
+  // 能量方块样式
+  if (tile.isEnergy) {
+    classes.push("tile-energy");
+  } 
+  // 引力核心样式
+  else if (tile.isGravityCore) {
+    classes.push("tile-gravity-core");
+  } 
+  // 普通方块样式
+  else {
+    classes.push("tile-" + tile.value);
+    if (tile.value > 2048) classes.push("tile-super");
+  }
 
   this.applyClasses(wrapper, classes);
 
   inner.classList.add("tile-inner");
-  inner.textContent = tile.value;
+  
+  // 设置不同方块的显示内容
+  if (tile.isEnergy) {
+    inner.textContent = "1";
+  } else if (tile.isGravityCore) {
+    inner.textContent = "G" + Math.round(tile.gravityStrength);
+  } else {
+    inner.textContent = tile.value;
+  }
 
   if (tile.previousPosition) {
     // Make sure that the tile gets rendered in the previous position first

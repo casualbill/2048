@@ -75,6 +75,14 @@ GameManager.prototype.addRandomTile = function () {
   }
 };
 
+// Adds an energy tile (value 1, blue flashing)
+GameManager.prototype.addEnergyTile = function () {
+  if (this.grid.cellsAvailable()) {
+    var tile = new Tile(this.grid.randomAvailableCell(), 1, true);
+    this.grid.insertTile(tile);
+  }
+};
+
 // Sends the updated grid to the actuator
 GameManager.prototype.actuate = function () {
   if (this.storageManager.getBestScore() < this.score) {
@@ -153,22 +161,29 @@ GameManager.prototype.move = function (direction) {
         var next      = self.grid.cellContent(positions.next);
 
         // Only one merger per row traversal?
-        if (next && next.value === tile.value && !next.mergedFrom) {
-          var merged = new Tile(positions.next, tile.value * 2);
-          merged.mergedFrom = [tile, next];
+        if (tile.isEnergy && next && next.isEnergy) {
+            // 2. 两个能量方块合并生成引力核心
+            var gravityCore = new Tile(positions.next, 0, false, true);
+            gravityCore.gravityStrength = 1;
+            self.grid.insertTile(gravityCore);
+            self.grid.removeTile(tile);
+            self.grid.removeTile(next);
+          } else if (!tile.isGravityCore && !next.isGravityCore && next && next.value === tile.value && !next.mergedFrom) {
+            var merged = new Tile(positions.next, tile.value * 2);
+            merged.mergedFrom = [tile, next];
 
-          self.grid.insertTile(merged);
-          self.grid.removeTile(tile);
+            self.grid.insertTile(merged);
+            self.grid.removeTile(tile);
 
-          // Converge the two tiles' positions
-          tile.updatePosition(positions.next);
+            // Converge the two tiles' positions
+            tile.updatePosition(positions.next);
 
-          // Update the score
-          self.score += merged.value;
+            // Update the score
+            self.score += merged.value;
 
-          // The mighty 2048 tile
-          if (merged.value === 2048) self.won = true;
-        } else {
+            // The mighty 2048 tile
+            if (merged.value === 2048) self.won = true;
+          } else {
           self.moveTile(tile, positions.farthest);
         }
 
@@ -180,7 +195,15 @@ GameManager.prototype.move = function (direction) {
   });
 
   if (moved) {
-    this.addRandomTile();
+    // 1. 有10%概率生成能量方块
+    if (Math.random() < 0.1) {
+      this.addEnergyTile();
+    } else {
+      this.addRandomTile();
+    }
+
+    // 处理引力核心效果
+    this.processGravityCores();
 
     if (!this.movesAvailable()) {
       this.over = true; // Game over!
@@ -188,6 +211,131 @@ GameManager.prototype.move = function (direction) {
 
     this.actuate();
   }
+};
+
+// 处理引力核心效果
+GameManager.prototype.processGravityCores = function () {
+  var gravityCores = [];
+  var self = this;
+
+  // 收集所有引力核心
+  this.grid.eachCell(function (x, y, tile) {
+    if (tile && tile.isGravityCore) {
+      gravityCores.push(tile);
+    }
+  });
+
+  if (gravityCores.length === 0) return;
+
+  // 为每个普通方块找到最强的吸引核心
+  var tileCoreMap = new Map();
+  
+  // 首先收集所有可被吸引的方块及其候选核心
+  this.grid.eachCell(function (x, y, tile) {
+    if (tile && !tile.isGravityCore && !tile.isEnergy) {
+      // 检查每个引力核心是否在相邻8格
+      var candidateCores = [];
+      gravityCores.forEach(function (core) {
+        var adjacentCells = self.getAdjacentCells(core.x, core.y);
+        var isAdjacent = adjacentCells.some(function (cell) {
+          return cell.x === tile.x && cell.y === tile.y;
+        });
+        if (isAdjacent) {
+          candidateCores.push(core);
+        }
+      });
+      
+      if (candidateCores.length > 0) {
+        // 找到强度最大的核心
+        var strongestCore = candidateCores.reduce(function (prev, current) {
+          return prev.gravityStrength > current.gravityStrength ? prev : current;
+        });
+        
+        // 如果有多个强度相同的核心，随机选择一个
+        var maxStrength = strongestCore.gravityStrength;
+        var strongestCores = candidateCores.filter(function (core) {
+          return core.gravityStrength === maxStrength;
+        });
+        strongestCore = strongestCores[Math.floor(Math.random() * strongestCores.length)];
+        
+        tileCoreMap.set(tile, strongestCore);
+      }
+    }
+  });
+  
+  // 处理每个方块的吸引
+  tileCoreMap.forEach(function (core, targetTile) {
+    // 计算吸引方向
+    var directionX = core.x - targetTile.x;
+    var directionY = core.y - targetTile.y;
+    var moveX = directionX !== 0 ? (directionX / Math.abs(directionX)) : 0;
+    var moveY = directionY !== 0 ? (directionY / Math.abs(directionY)) : 0;
+    
+    // 检查目标位置是否可用
+    var targetPos = { x: targetTile.x + moveX, y: targetTile.y + moveY };
+    
+    if (self.grid.cellAvailable(targetPos)) {
+      // 移动方块
+      self.moveTile(targetTile, targetPos);
+      
+      // 5. 方块被吸引时销毁，引力强度增加log₂(方块数值)
+      var logValue = Math.log2(targetTile.value);
+      core.gravityStrength += logValue;
+      
+      // 移除被吸引的方块
+      self.grid.removeTile(targetTile);
+    }
+  });
+
+  // 8. 处理所有引力核心的爆炸逻辑
+  // 重新收集所有引力核心，因为有些可能已经被移除
+  var updatedGravityCores = [];
+  this.grid.eachCell(function (x, y, tile) {
+    if (tile && tile.isGravityCore) {
+      updatedGravityCores.push(tile);
+    }
+  });
+
+  updatedGravityCores.forEach(function (core) {
+    if (core.gravityStrength >= 10) {
+      var aroundCells = self.getAdjacentCells(core.x, core.y);
+      var allFilled = true;
+      
+      // 检查周围8格是否被填满
+      aroundCells.forEach(function (cell) {
+        if (!self.grid.cellOccupied(cell)) {
+          allFilled = false;
+        }
+      });
+      
+      if (allFilled) {
+        // 爆炸，清空核心和周围8格
+        self.grid.removeTile(core);
+        aroundCells.forEach(function (cell) {
+          var tile = self.grid.cellContent(cell);
+          if (tile) {
+            self.grid.removeTile(tile);
+          }
+        });
+      }
+    }
+  });
+};
+
+// 获取8个相邻的格子
+GameManager.prototype.getAdjacentCells = function (x, y) {
+  var adjacent = [];
+  for (var dx = -1; dx <= 1; dx++) {
+    for (var dy = -1; dy <= 1; dy++) {
+      if (dx === 0 && dy === 0) continue;
+      var newX = x + dx;
+      var newY = y + dy;
+      if (newX >= 0 && newX < this.size && newY >= 0 && newY < this.size) {
+        adjacent.push({ x: newX, y: newY });
+      }
+    }
+  }
+  return adjacent;
 };
 
 // Get the vector representing the chosen direction
