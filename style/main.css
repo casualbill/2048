@@ -382,10 +382,34 @@ hr {
     color: #f9f6f2;
     background: #edc22e;
     box-shadow: 0 0 30px 10px rgba(243, 215, 116, 0.55556), inset 0 0 0 1px rgba(255, 255, 255, 0.33333);
-    font-size: 35px; }
+    font-size: 35px;
+  }
     @media screen and (max-width: 520px) {
       .tile.tile-2048 .tile-inner {
-        font-size: 15px; } }
+        font-size: 15px;
+      }
+    }
+
+  /* 能量方块样式 - 蓝色闪烁 */
+  .tile-energy .tile-inner {
+    background: #3498db;
+    color: #f9f6f2;
+    animation: blink 1s infinite;
+  }
+
+  /* 引力核心样式 - 紫色 */
+  .tile-gravity-core .tile-inner {
+    background: #9b59b6;
+    color: #f9f6f2;
+    box-shadow: 0 0 10px rgba(155, 89, 182, 0.8);
+  }
+
+  /* 闪烁动画 */
+  @keyframes blink {
+    0% { opacity: 1; }
+    50% { opacity: 0.5; }
+    100% { opacity: 1; }
+  }
   .tile.tile-super .tile-inner {
     color: #f9f6f2;
     background: #3c3a32;
