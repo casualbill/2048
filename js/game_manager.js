@@ -138,6 +138,8 @@ GameManager.prototype.move = function (direction) {
   var vector     = this.getVector(direction);
   var traversals = this.buildTraversals(vector);
   var moved      = false;
+  var hasMerged  = false;
+  var maxMergedValue = 0;
 
   // Save the current tile positions and remove merger information
   this.prepareTiles();
@@ -168,6 +170,22 @@ GameManager.prototype.move = function (direction) {
 
           // The mighty 2048 tile
           if (merged.value === 2048) self.won = true;
+          
+          // 记录合并信息
+          hasMerged = true;
+          if (merged.value > maxMergedValue) {
+            maxMergedValue = merged.value;
+          }
+          
+          // 更新成就数据
+          self.achievementsManager.checkNumberMilestones(merged.value);
+          self.achievementsManager.checkSingleDominance(merged.value);
+          self.achievementsManager.checkQuickWin(merged.value);
+          self.achievementsManager.checkNarrowVictory(self.score, self.grid, merged.value);
+          self.achievementsManager.updateTotal512Merges(merged.value);
+          
+          // 检查四面楚歌成就
+          self.achievementsManager.checkSurrounded(self.grid, positions.next.x, positions.next.y, merged.value);
         } else {
           self.moveTile(tile, positions.farthest);
         }
@@ -180,10 +198,25 @@ GameManager.prototype.move = function (direction) {
   });
 
   if (moved) {
+    this.achievementsManager.currentGameData.moves++;
+    this.achievementsManager.currentGameData.usedDirections.add(direction);
+    this.achievementsManager.currentGameData.highestTile = Math.max(this.achievementsManager.currentGameData.highestTile, maxMergedValue);
+    
+    // 更新累计滑动次数
+    this.achievementsManager.updateTotalMoves();
+    
+    // 检查成就
+    this.achievementsManager.checkConsecutiveMerges(hasMerged);
+    this.achievementsManager.checkPerfectStart(this.grid);
+    this.achievementsManager.checkCleaner(this.grid);
+    this.achievementsManager.checkLayoutBeauty(this.grid, this.achievementsManager.currentGameData.highestTile);
+    this.achievementsManager.checkImpenetrable(this.grid, this.achievementsManager.currentGameData.highestTile);
+    
     this.addRandomTile();
 
     if (!this.movesAvailable()) {
       this.over = true; // Game over!
+      this.achievementsManager.updateTotalLosses();
     }
 
     this.actuate();

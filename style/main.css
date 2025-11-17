@@ -756,3 +756,174 @@ hr {
     margin-top: 90px !important; }
   .game-message .lower {
     margin-top: 30px !important; } }
+
+/* 成就面板样式 */
+.achievements-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(250, 248, 239, 0.95);
+  z-index: 1000;
+  display: none;
+  overflow-y: auto;
+  padding: 20px;
+  box-sizing: border-box;
+}
+
+.achievements-container.active {
+  display: block;
+}
+
+.achievements-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  padding-bottom: 10px;
+  border-bottom: 2px solid #bbada0;
+}
+
+.achievements-header h2 {
+  margin: 0;
+  font-size: 40px;
+  font-weight: bold;
+  color: #776e65;
+}
+
+.close-achievements {
+  font-size: 40px;
+  font-weight: bold;
+  color: #776e65;
+  text-decoration: none;
+  cursor: pointer;
+  line-height: 1;
+}
+
+.close-achievements:hover {
+  color: #edc22e;
+}
+
+.achievements-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 20px;
+}
+
+.achievement-group-header {
+  grid-column: 1 / -1;
+  font-size: 24px;
+  font-weight: bold;
+  color: #776e65;
+  margin-top: 20px;
+  margin-bottom: 10px;
+  padding-bottom: 5px;
+  border-bottom: 1px solid #bbada0;
+}
+
+.achievement-group-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 20px;
+}
+
+.achievement-item {
+  background-color: #bbada0;
+  border-radius: 10px;
+  padding: 20px;
+  color: #fff;
+  transition: all 0.3s ease;
+}
+
+.achievement-item:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+}
+
+.achievement-item.achieved {
+  background-color: #edc22e;
+  color: #776e65;
+}
+
+.achievement-name {
+  font-size: 20px;
+  font-weight: bold;
+  margin-bottom: 10px;
+}
+
+.achievement-description {
+  font-size: 14px;
+  margin-bottom: 10px;
+  opacity: 0.9;
+}
+
+.achievement-progress {
+  font-size: 12px;
+  opacity: 0.8;
+}
+
+/* 成就通知样式 */
+.achievement-notification {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  background-color: #edc22e;
+  color: #776e65;
+  padding: 20px;
+  border-radius: 10px;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+  z-index: 2000;
+  animation: slideInRight 0.5s ease;
+}
+
+@keyframes slideInRight {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.achievement-notification h3 {
+  margin: 0 0 10px 0;
+  font-size: 20px;
+  font-weight: bold;
+}
+
+.achievement-notification p {
+  margin: 0 0 5px 0;
+  font-size: 16px;
+  font-weight: bold;
+}
+
+.achievement-notification small {
+  font-size: 14px;
+  opacity: 0.8;
+}
+
+/* 成就按钮样式 */
+.achievements-button {
+  display: inline-block;
+  background: #8f7a66;
+  border-radius: 3px;
+  padding: 0 20px;
+  text-decoration: none;
+  color: #f9f6f2;
+  height: 40px;
+  line-height: 42px;
+  cursor: pointer;
+  display: block;
+  text-align: center;
+  float: right;
+  margin-left: 10px;
+  font-weight: bold;
+}
+
+.achievements-button:hover {
+  background: #edc22e;
+  color: #776e65;
+}
