@@ -21,22 +21,14 @@ HTMLActuator.prototype.actuate = function (grid, metadata) {
       });
     });
 
-    self.updateScore(metadata.score);
-    self.updateBestScore(metadata.bestScore);
+    self.actuateScore(metadata.score, metadata.bestScore);
 
-    if (metadata.terminated) {
-      if (metadata.over) {
-        self.message(false); // You lose
-      } else if (metadata.won) {
-        self.message(true); // You win!
-      }
-    }
-
+    if (metadata.over) self.message("game-over");
+    if (metadata.won && !metadata.keepPlaying) self.message("game-won");
   });
 };
 
-// Continues the game (both restart and keep playing)
-HTMLActuator.prototype.continueGame = function () {
+HTMLActuator.prototype.restart = function () {
   this.clearMessage();
 };
 
@@ -49,45 +41,29 @@ HTMLActuator.prototype.clearContainer = function (container) {
 HTMLActuator.prototype.addTile = function (tile) {
   var self = this;
 
-  var wrapper   = document.createElement("div");
-  var inner     = document.createElement("div");
-  var position  = tile.previousPosition || { x: tile.x, y: tile.y };
-  var positionClass = this.positionClass(position);
+  var element   = document.createElement("div");
+  var position  = this.normalizePosition(tile.previousPosition || tile.position);
+  var className = this.getClassName(tile.value);
 
-  // We can't use classlist because it somehow glitches when replacing classes
-  var classes = ["tile", "tile-" + tile.value, positionClass];
-
-  if (tile.value > 2048) classes.push("tile-super");
-
-  this.applyClasses(wrapper, classes);
-
-  inner.classList.add("tile-inner");
-  inner.textContent = tile.value;
+  this.applyClasses(element, ["tile", className]);
+  element.textContent = tile.value;
 
   if (tile.previousPosition) {
-    // Make sure that the tile gets rendered in the previous position first
     window.requestAnimationFrame(function () {
-      classes[2] = self.positionClass({ x: tile.x, y: tile.y });
-      self.applyClasses(wrapper, classes); // Update the position
+      self.applyClasses(element, ["tile", className, "tile-merged"]);
     });
   } else if (tile.mergedFrom) {
-    classes.push("tile-merged");
-    this.applyClasses(wrapper, classes);
+    this.applyClasses(element, ["tile", className, "tile-merged"]);
 
-    // Render the tiles that merged
     tile.mergedFrom.forEach(function (merged) {
       self.addTile(merged);
     });
   } else {
-    classes.push("tile-new");
-    this.applyClasses(wrapper, classes);
+    this.applyClasses(element, ["tile", className, "tile-new"]);
   }
 
-  // Add the inner part of the tile to the wrapper
-  wrapper.appendChild(inner);
-
-  // Put the tile on the board
-  this.tileContainer.appendChild(wrapper);
+  this.setPosition(element, position);
+  this.tileContainer.appendChild(element);
 };
 
 HTMLActuator.prototype.applyClasses = function (element, classes) {
@@ -98,12 +74,30 @@ HTMLActuator.prototype.normalizePosition = function (position) {
   return { x: position.x + 1, y: position.y + 1 };
 };
 
-HTMLActuator.prototype.positionClass = function (position) {
-  position = this.normalizePosition(position);
-  return "tile-position-" + position.x + "-" + position.y;
+HTMLActuator.prototype.getClassName = function (value) {
+  var prefix = "tile-";
+  switch (value) {
+    case 2: return prefix + "2";
+    case 4: return prefix + "4";
+    case 8: return prefix + "8";
+    case 16: return prefix + "16";
+    case 32: return prefix + "32";
+    case 64: return prefix + "64";
+    case 128: return prefix + "128";
+    case 256: return prefix + "256";
+    case 512: return prefix + "512";
+    case 1024: return prefix + "1024";
+    case 2048: return prefix + "2048";
+    default: return prefix + "super";
+  }
 };
 
-HTMLActuator.prototype.updateScore = function (score) {
+HTMLActuator.prototype.setPosition = function (element, position) {
+  element.style.left = (position.x * 100) + "%";
+  element.style.top  = (position.y * 100) + "%";
+};
+
+HTMLActuator.prototype.actuateScore = function (score, bestScore) {
   this.clearContainer(this.scoreContainer);
 
   var difference = score - this.score;
@@ -118,22 +112,16 @@ HTMLActuator.prototype.updateScore = function (score) {
 
     this.scoreContainer.appendChild(addition);
   }
-};
 
-HTMLActuator.prototype.updateBestScore = function (bestScore) {
   this.bestContainer.textContent = bestScore;
 };
 
-HTMLActuator.prototype.message = function (won) {
-  var type    = won ? "game-won" : "game-over";
-  var message = won ? "You win!" : "Game over!";
-
+HTMLActuator.prototype.message = function (type, message) {
   this.messageContainer.classList.add(type);
   this.messageContainer.getElementsByTagName("p")[0].textContent = message;
 };
 
 HTMLActuator.prototype.clearMessage = function () {
-  // IE only takes one value to remove at a time.
   this.messageContainer.classList.remove("game-won");
   this.messageContainer.classList.remove("game-over");
 };
