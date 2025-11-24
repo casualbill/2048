@@ -61,6 +61,10 @@ HTMLActuator.prototype.addTile = function (tile) {
 
   this.applyClasses(wrapper, classes);
 
+  // Add data attributes for tile position
+  wrapper.setAttribute("data-x", tile.x);
+  wrapper.setAttribute("data-y", tile.y);
+
   inner.classList.add("tile-inner");
   inner.textContent = tile.value;
 
@@ -69,6 +73,9 @@ HTMLActuator.prototype.addTile = function (tile) {
     window.requestAnimationFrame(function () {
       classes[2] = self.positionClass({ x: tile.x, y: tile.y });
       self.applyClasses(wrapper, classes); // Update the position
+      // Update data attributes
+      wrapper.setAttribute("data-x", tile.x);
+      wrapper.setAttribute("data-y", tile.y);
     });
   } else if (tile.mergedFrom) {
     classes.push("tile-merged");
@@ -117,6 +124,43 @@ HTMLActuator.prototype.updateScore = function (score) {
     addition.textContent = "+" + difference;
 
     this.scoreContainer.appendChild(addition);
+  }
+};
+
+HTMLActuator.prototype.showScoreSubtraction = function (difference) {
+  var subtraction = document.createElement("div");
+  subtraction.classList.add("score-subtraction");
+  subtraction.textContent = "-" + difference;
+
+  this.scoreContainer.appendChild(subtraction);
+};
+
+HTMLActuator.prototype.updateButtonCounts = function(undoCount, eliminateCount, swapCount) {
+  // Update undo button
+  var undoButton = document.querySelector(".undo-button");
+  undoButton.textContent = "Undo (" + undoCount + ")";
+  if (undoCount <= 0) {
+    undoButton.classList.add("disabled");
+  } else {
+    undoButton.classList.remove("disabled");
+  }
+
+  // Update eliminate button
+  var eliminateButton = document.querySelector(".eliminate-button");
+  eliminateButton.textContent = "Eliminate (" + eliminateCount + ")";
+  if (eliminateCount <= 0) {
+    eliminateButton.classList.add("disabled");
+  } else {
+    eliminateButton.classList.remove("disabled");
+  }
+
+  // Update swap button
+  var swapButton = document.querySelector(".swap-button");
+  swapButton.textContent = "Swap (" + swapCount + ")";
+  if (swapCount <= 0) {
+    swapButton.classList.add("disabled");
+  } else {
+    swapButton.classList.remove("disabled");
   }
 };
 

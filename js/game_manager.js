@@ -5,12 +5,33 @@ function GameManager(size, InputManager, Actuator, StorageManager) {
   this.actuator       = new Actuator;
 
   this.startTiles     = 2;
+  this.undoCount      = 3;
+  this.eliminateCount = 2;
+  this.swapCount      = 2;
+  this.history        = [];
+  this.eliminateMode  = false;
+  this.swapMode       = false;
+  this.selectedTiles  = [];
 
   this.inputManager.on("move", this.move.bind(this));
   this.inputManager.on("restart", this.restart.bind(this));
   this.inputManager.on("keepPlaying", this.keepPlaying.bind(this));
+  this.inputManager.on("undo", this.undo.bind(this));
+  this.inputManager.on("eliminate", this.toggleEliminateMode.bind(this));
+  this.inputManager.on("swap", this.toggleSwapMode.bind(this));
 
   this.setup();
+
+  // Add tile click event listeners
+  var self = this;
+  document.querySelector(".tile-container").addEventListener("click", function(event) {
+    var tileElement = event.target.closest(".tile");
+    if (tileElement) {
+      var x = parseInt(tileElement.getAttribute("data-x"));
+      var y = parseInt(tileElement.getAttribute("data-y"));
+      self.handleTileClick(x, y);
+    }
+  });
 }
 
 // Restart the game
@@ -96,6 +117,9 @@ GameManager.prototype.actuate = function () {
     terminated: this.isGameTerminated()
   });
 
+  // Update button counts
+  this.actuator.updateButtonCounts(this.undoCount, this.eliminateCount, this.swapCount);
+
 };
 
 // Represent the current game as an object
@@ -107,6 +131,114 @@ GameManager.prototype.serialize = function () {
     won:         this.won,
     keepPlaying: this.keepPlaying
   };
+};
+
+// Toggle eliminate mode
+GameManager.prototype.toggleEliminateMode = function() {
+  if (this.eliminateCount <= 0) return;
+
+  this.eliminateMode = !this.eliminateMode;
+  this.swapMode = false;
+  this.selectedTiles = [];
+
+  var gameContainer = document.querySelector(".game-container");
+  if (this.eliminateMode) {
+    gameContainer.classList.add("eliminate-mode");
+  } else {
+    gameContainer.classList.remove("eliminate-mode");
+  }
+};
+
+// Toggle swap mode
+GameManager.prototype.toggleSwapMode = function() {
+  if (this.swapCount <= 0) return;
+
+  this.swapMode = !this.swapMode;
+  this.eliminateMode = false;
+  this.selectedTiles = [];
+
+  var gameContainer = document.querySelector(".game-container");
+  if (this.swapMode) {
+    gameContainer.classList.add("swap-mode");
+  } else {
+    gameContainer.classList.remove("swap-mode");
+  }
+};
+
+// Handle tile click in eliminate or swap mode
+GameManager.prototype.handleTileClick = function(x, y) {
+  if (!this.eliminateMode && !this.swapMode) return;
+
+  var tile = this.grid.cellContent({x: x, y: y});
+  if (!tile) return;
+
+  if (this.eliminateMode) {
+    // In eliminate mode, eliminate the clicked tile
+    this.eliminateTile(x, y);
+    this.eliminateMode = false;
+    this.eliminateCount--;
+    document.querySelector(".game-container").classList.remove("eliminate-mode");
+  } else if (this.swapMode) {
+    // In swap mode, select tiles to swap
+    this.selectedTiles.push(tile);
+    
+    if (this.selectedTiles.length === 2) {
+      // Swap two selected tiles
+      var tile1 = this.selectedTiles[0];
+      var tile2 = this.selectedTiles[1];
+      
+      // Swap positions
+      var tempX = tile1.x;
+      var tempY = tile1.y;
+      var tile2X = tile2.x;
+      var tile2Y = tile2.y;
+      
+      // Clear original positions
+      this.grid.cells[tempX][tempY] = null;
+      this.grid.cells[tile2X][tile2Y] = null;
+      
+      // Swap the position properties of the tile objects
+      tile1.x = tile2X;
+      tile1.y = tile2Y;
+      tile2.x = tempX;
+      tile2.y = tempY;
+      
+      // Save the new positions for animation
+      tile1.savePosition();
+      tile2.savePosition();
+      
+      // Update the grid - swap the tiles in the grid cells
+      this.grid.cells[tile1.x][tile1.y] = tile1;
+      this.grid.cells[tile2.x][tile2.y] = tile2;
+      
+      this.swapMode = false;
+      this.swapCount--;
+      this.selectedTiles = [];
+      document.querySelector(".game-container").classList.remove("swap-mode");
+      
+      // Update game state
+      this.actuate();
+    }
+  }
+};
+
+// Eliminate a tile
+GameManager.prototype.eliminateTile = function(x, y) {
+  var tile = this.grid.cellContent({x: x, y: y});
+  if (tile) {
+    // Show eliminate animation - use x first, then y (correct order from positionClass)
+    var tileElement = document.querySelector(".tile-position-" + (x + 1) + "-" + (y + 1));
+    if (tileElement) {
+      tileElement.classList.add("eliminating");
+      
+      // Remove tile after animation
+      var self = this;
+      setTimeout(function() {
+        self.grid.removeTile(tile);
+        self.actuate();
+      }, 500);
+    }
+  }
 };
 
 // Save all tile positions and remove merger info
@@ -127,11 +259,48 @@ GameManager.prototype.moveTile = function (tile, cell) {
 };
 
 // Move tiles on the grid in the specified direction
+GameManager.prototype.undo = function() {
+  if (this.undoCount <= 0 || this.history.length === 0) return;
+
+  // Get previous state from history
+  var previousState = this.history.pop();
+  this.undoCount--;
+
+  // Restore previous state
+  var previousScore = this.score;
+  var previousBestScore = this.storageManager.getBestScore();
+  this.grid = new Grid(previousState.grid.size, previousState.grid.cells);
+  this.score = previousState.score;
+  
+  // Update best score if needed
+  if (previousScore > previousState.bestScore) {
+    this.storageManager.setBestScore(previousState.bestScore);
+  }
+
+  // Show score subtraction animation if score decreased
+  if (previousScore > this.score) {
+    var scoreDiff = previousScore - this.score;
+    this.actuator.showScoreSubtraction(scoreDiff);
+  }
+
+  // Update game state
+  this.over = false; // Game is no longer over after undo
+  this.actuate();
+};
+
+// Move tiles on the grid in the specified direction
 GameManager.prototype.move = function (direction) {
   // 0: up, 1: right, 2: down, 3: left
   var self = this;
 
-  if (this.isGameTerminated()) return; // Don't do anything if the game's over
+  if (this.isGameTerminated() || this.eliminateMode || this.swapMode) return; // Don't do anything if the game's over or in special mode
+
+  // Save current state to history before making a move
+  this.history.push({
+    grid: this.grid.serialize(),
+    score: this.score,
+    bestScore: this.storageManager.getBestScore()
+  });
 
   var cell, tile;
 

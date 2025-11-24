@@ -517,7 +517,7 @@ hr {
   line-height: 42px;
   margin-bottom: 0; }
 
-.restart-button {
+.restart-button, .undo-button, .eliminate-button, .swap-button {
   display: inline-block;
   background: #8f7a66;
   border-radius: 3px;
@@ -528,7 +528,90 @@ hr {
   line-height: 42px;
   display: block;
   text-align: center;
-  float: right; }
+  float: right;
+  margin-left: 10px;
+  cursor: pointer;
+}
+
+.undo-button.disabled, .eliminate-button.disabled, .swap-button.disabled {
+  background: #ccc0b3;
+  cursor: not-allowed;
+}
+
+.eliminate-mode .tile:hover {
+  opacity: 0.5;
+  transition: opacity 0.2s ease;
+}
+
+.eliminate-mode .tile.selected {
+  opacity: 0.5;
+  box-shadow: 0 0 15px 5px rgba(255, 0, 0, 0.3);
+  transition: all 0.2s ease;
+}
+
+.swap-mode .tile:hover {
+  animation: shake 0.3s ease;
+}
+
+.swap-mode .tile.selected {
+  box-shadow: 0 0 15px 5px rgba(0, 255, 0, 0.3);
+  transition: all 0.2s ease;
+}
+
+.tile.eliminating {
+  animation: fade-out 0.5s ease;
+  animation-fill-mode: forwards;
+}
+
+@-webkit-keyframes fade-out {
+  0% { opacity: 1; }
+  100% { opacity: 0; transform: scale(0.8); }
+}
+
+@-moz-keyframes fade-out {
+  0% { opacity: 1; }
+  100% { opacity: 0; transform: scale(0.8); }
+}
+
+@keyframes fade-out {
+  0% { opacity: 1; }
+  100% { opacity: 0; transform: scale(0.8); }
+}
+
+@-webkit-keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-5px); }
+  75% { transform: translateX(5px); }
+}
+
+@-moz-keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-5px); }
+  75% { transform: translateX(5px); }
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-5px); }
+  75% { transform: translateX(5px); }
+}
+
+.score-subtraction {
+  position: absolute;
+  right: 30px;
+  color: red;
+  font-size: 25px;
+  line-height: 25px;
+  font-weight: bold;
+  color: rgba(255, 0, 0, 0.9);
+  z-index: 100;
+  -webkit-animation: move-up 600ms ease-in;
+  -moz-animation: move-up 600ms ease-in;
+  animation: move-up 600ms ease-in;
+  -webkit-animation-fill-mode: both;
+  -moz-animation-fill-mode: both;
+  animation-fill-mode: both;
+}
 
 .game-explanation {
   margin-top: 50px; }
