@@ -36,17 +36,15 @@ KeyboardInputManager.prototype.listen = function () {
 
   var map = {
     38: 0, // Up
-    39: 1, // Right
-    40: 2, // Down
-    37: 3, // Left
-    75: 0, // Vim up
-    76: 1, // Vim right
-    74: 2, // Vim down
-    72: 3, // Vim left
-    87: 0, // W
-    68: 1, // D
-    83: 2, // S
-    65: 3  // A
+    39: 2, // Right
+    40: 3, // Down
+    37: 5, // Left
+    81: 5, // Q: up-left
+    87: 0, // W: up
+    69: 1, // E: up-right
+    65: 4, // A: down-left
+    83: 3, // S: down
+    68: 2  // D: down-right
   };
 
   // Respond to direction keys
@@ -121,8 +119,20 @@ KeyboardInputManager.prototype.listen = function () {
     var absDy = Math.abs(dy);
 
     if (Math.max(absDx, absDy) > 10) {
-      // (right : left) : (down : up)
-      self.emit("move", absDx > absDy ? (dx > 0 ? 1 : 3) : (dy > 0 ? 2 : 0));
+      var angle = Math.atan2(dy, dx) * 180 / Math.PI;
+      if (angle < 0) angle += 360;
+
+      var direction;
+      if (angle >= 337.5 || angle < 22.5) direction = 2; // Right
+      else if (angle >= 22.5 && angle < 67.5) direction = 3; // Down
+      else if (angle >= 67.5 && angle < 112.5) direction = 4; // Down-left
+      else if (angle >= 112.5 && angle < 157.5) direction = 5; // Left
+      else if (angle >= 157.5 && angle < 202.5) direction = 0; // Up
+      else if (angle >= 202.5 && angle < 247.5) direction = 1; // Up-right
+      else if (angle >= 247.5 && angle < 292.5) direction = 2; // Right (same as 337.5-22.5)
+      else if (angle >= 292.5 && angle < 337.5) direction = 3; // Down (same as 22.5-67.5)
+
+      self.emit("move", direction);
     }
   });
 };
