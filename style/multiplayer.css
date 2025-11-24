@@ -1,0 +1,70 @@
+.player-1 {
+  color: #776e65;
+}
+
+.player-1 .game-container {
+  background: #bbada0;
+}
+
+.player-1 .tile-inner {
+  background: #eee4da;
+}
+
+/* Player 2 styles */
+.player-2 {
+  color: #f9f6f2;
+}
+
+.player-2 .game-container {
+  background: #1c1c1c;
+}
+
+.player-2 .tile-inner {
+  background: #333333;
+}
+
+/* Multiplayer selection */
+.multiplayer-selection {
+  margin: 20px 0;
+}
+
+.mode-buttons button, .time-selection button {
+  font-size: 18px;
+  cursor: pointer;
+  border: none;
+  border-radius: 3px;
+  background: #8f7a66;
+  color: #f9f6f2;
+}
+
+.mode-buttons button:hover, .time-selection button:hover {
+  background: #9f8b77;
+}
+
+/* Hide player boards by default */
+.player-boards {
+  display: none;
+}
+
+/* Winner message */
+.winner-message {
+  display: none;
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(238, 228, 218, 0.73);
+  padding: 40px;
+  border-radius: 10px;
+  font-size: 36px;
+  font-weight: bold;
+  color: #776e65;
+}
+
+.timer-container {
+  display: none;
+  text-align: center;
+  font-size: 24px;
+  margin: 20px 0;
+  color: #776e65;
+}
