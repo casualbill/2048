@@ -5,6 +5,7 @@
   <title>2048</title>
 
   <link href="style/main.css" rel="stylesheet" type="text/css">
+  <link href="style/multiplayer.css" rel="stylesheet" type="text/css">
   <link rel="shortcut icon" href="favicon.ico">
   <link rel="apple-touch-icon" href="meta/apple-touch-icon.png">
   <link rel="apple-touch-startup-image" href="meta/apple-touch-startup-image-640x1096.png" media="(device-width: 320px) and (device-height: 568px) and (-webkit-device-pixel-ratio: 2)"> <!-- iPhone 5+ -->
@@ -29,14 +30,46 @@
     <div class="above-game">
       <p class="game-intro">Join the numbers and get to the <strong>2048 tile!</strong></p>
       <a class="restart-button">New Game</a>
+      <a class="multiplayer-button" style="margin-left: 10px;">Multiplayer Mode</a>
     </div>
 
-    <div class="game-container">
-      <div class="game-message">
+    <!-- Timer and Winner Message -->
+    <div class="timer-container">
+      Time remaining: <span id="timer">00:00</span>
+    </div>
+    <div class="winner-message" id="winner-message">
+      <p id="winner-text"></p>
+    </div>
+
+    <!-- Multiplayer Mode Selection -->
+    <div class="multiplayer-selection" style="display: none; text-align: center; margin-bottom: 20px;">
+      <h3>Multiplayer Mode Selection</h3>
+      <div class="mode-buttons">
+        <button class="timed-mode-button" style="margin: 0 10px; padding: 5px 15px;">Timed Mode</button>
+        <button class="infinite-mode-button" style="margin: 0 10px; padding: 5px 15px;">Infinite Mode</button>
+      </div>
+      <div class="time-selection" style="display: none; margin-top: 10px;">
+        <button class="time-option" data-time="1" style="margin: 0 5px; padding: 5px 10px;">1 minute</button>
+        <button class="time-option" data-time="3" style="margin: 0 5px; padding: 5px 10px;">3 minutes</button>
+        <button class="time-option" data-time="5" style="margin: 0 5px; padding: 5px 10px;">5 minutes</button>
+      </div>
+    </div>
+
+    <div class="player-boards" style="display: flex; justify-content: center; gap: 50px;">
+
+      <!-- Player 1 Board -->
+      <div class="player-1 board-container">
+        <h2>Player 1 (Arrow Keys)</h2>
+        <div class="scores-container">
+          <div class="score-container player-1-score">0</div>
+          <div class="best-container player-1-best">0</div>
+        </div>
+        <div class="game-container player-1-game">
+      <div class="game-message player-1-message">
         <p></p>
         <div class="lower">
-	        <a class="keep-playing-button">Keep going</a>
-          <a class="retry-button">Try again</a>
+	        <a class="keep-playing-button player-1-keep-playing">Keep going</a>
+          <a class="retry-button player-1-retry">Try again</a>
         </div>
       </div>
 
@@ -67,10 +100,61 @@
         </div>
       </div>
 
-      <div class="tile-container">
+      <div class="tile-container player-1-tiles">
 
       </div>
-    </div>
+        </div>
+      </div>
+
+      <!-- Player 2 Board -->
+      <div class="player-2 board-container">
+        <h2>Player 2 (WASD Keys)</h2>
+        <div class="scores-container">
+          <div class="score-container player-2-score">0</div>
+          <div class="best-container player-2-best">0</div>
+        </div>
+        <div class="game-container player-2-game">
+          <div class="game-message player-2-message">
+            <p></p>
+            <div class="lower">
+              <a class="keep-playing-button player-2-keep-playing">Keep going</a>
+              <a class="retry-button player-2-retry">Try again</a>
+            </div>
+          </div>
+
+          <div class="grid-container">
+            <div class="grid-row">
+              <div class="grid-cell"></div>
+              <div class="grid-cell"></div>
+              <div class="grid-cell"></div>
+              <div class="grid-cell"></div>
+            </div>
+            <div class="grid-row">
+              <div class="grid-cell"></div>
+              <div class="grid-cell"></div>
+              <div class="grid-cell"></div>
+              <div class="grid-cell"></div>
+            </div>
+            <div class="grid-row">
+              <div class="grid-cell"></div>
+              <div class="grid-cell"></div>
+              <div class="grid-cell"></div>
+              <div class="grid-cell"></div>
+            </div>
+            <div class="grid-row">
+              <div class="grid-cell"></div>
+              <div class="grid-cell"></div>
+              <div class="grid-cell"></div>
+              <div class="grid-cell"></div>
+            </div>
+          </div>
+
+          <div class="tile-container player-2-tiles">
+
+          </div>
+        </div>
+      </div>
+    </div> <!-- End player-boards -->
 
     <p class="game-explanation">
       <strong class="important">How to play:</strong> Use your <strong>arrow keys</strong> to move the tiles. When two tiles with the same number touch, they <strong>merge into one!</strong>
@@ -89,11 +173,13 @@
   <script src="js/classlist_polyfill.js"></script>
   <script src="js/animframe_polyfill.js"></script>
   <script src="js/keyboard_input_manager.js"></script>
+  <script src="js/keyboard_input_manager_multiplayer.js"></script>
   <script src="js/html_actuator.js"></script>
   <script src="js/grid.js"></script>
   <script src="js/tile.js"></script>
   <script src="js/local_storage_manager.js"></script>
   <script src="js/game_manager.js"></script>
+  <script src="js/multiplayer_manager.js"></script>
   <script src="js/application.js"></script>
 </body>
 </html>
