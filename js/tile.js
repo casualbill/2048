@@ -1,6 +1,7 @@
 function Tile(position, value) {
-  this.x                = position.x;
-  this.y                = position.y;
+  this.q                = position.q;
+  this.r                = position.r;
+  this.s                = position.s;
   this.value            = value || 2;
 
   this.previousPosition = null;
@@ -8,19 +9,21 @@ function Tile(position, value) {
 }
 
 Tile.prototype.savePosition = function () {
-  this.previousPosition = { x: this.x, y: this.y };
+  this.previousPosition = { q: this.q, r: this.r, s: this.s };
 };
 
 Tile.prototype.updatePosition = function (position) {
-  this.x = position.x;
-  this.y = position.y;
+  this.q = position.q;
+  this.r = position.r;
+  this.s = position.s;
 };
 
 Tile.prototype.serialize = function () {
   return {
     position: {
-      x: this.x,
-      y: this.y
+      q: this.q,
+      r: this.r,
+      s: this.s
     },
     value: this.value
   };

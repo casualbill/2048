@@ -3,15 +3,16 @@ function Grid(size, previousState) {
   this.cells = previousState ? this.fromState(previousState) : this.empty();
 }
 
-// Build a grid of the specified size
+// Build a hexagonal grid of the specified size (using axial coordinates)
 Grid.prototype.empty = function () {
-  var cells = [];
+  var cells = new Map();
 
-  for (var x = 0; x < this.size; x++) {
-    var row = cells[x] = [];
-
-    for (var y = 0; y < this.size; y++) {
-      row.push(null);
+  for (var q = -this.size + 1; q < this.size; q++) {
+    for (var r = -this.size + 1; r < this.size; r++) {
+      var s = -q - r;
+      if (Math.abs(s) < this.size) {
+        cells.set(q + "," + r, null);
+      }
     }
   }
 
@@ -19,15 +20,11 @@ Grid.prototype.empty = function () {
 };
 
 Grid.prototype.fromState = function (state) {
-  var cells = [];
+  var cells = new Map();
 
-  for (var x = 0; x < this.size; x++) {
-    var row = cells[x] = [];
-
-    for (var y = 0; y < this.size; y++) {
-      var tile = state[x][y];
-      row.push(tile ? new Tile(tile.position, tile.value) : null);
-    }
+  for (var key in state) {
+    var tile = state[key];
+    cells.set(key, tile ? new Tile(tile.position, tile.value) : null);
   }
 
   return cells;
@@ -45,9 +42,9 @@ Grid.prototype.randomAvailableCell = function () {
 Grid.prototype.availableCells = function () {
   var cells = [];
 
-  this.eachCell(function (x, y, tile) {
+  this.eachCell(function (q, r, s, tile) {
     if (!tile) {
-      cells.push({ x: x, y: y });
+      cells.push({ q: q, r: r, s: s });
     }
   });
 
@@ -56,10 +53,10 @@ Grid.prototype.availableCells = function () {
 
 // Call callback for every cell
 Grid.prototype.eachCell = function (callback) {
-  for (var x = 0; x < this.size; x++) {
-    for (var y = 0; y < this.size; y++) {
-      callback(x, y, this.cells[x][y]);
-    }
+  for (var [key, tile] of this.cells) {
+    var [q, r] = key.split(",").map(Number);
+    var s = -q - r;
+    callback(q, r, s, tile);
   }
 };
 
@@ -68,18 +65,19 @@ Grid.prototype.cellsAvailable = function () {
   return !!this.availableCells().length;
 };
 
-// Check if the specified cell is taken
+// Check if the specified cell is available
 Grid.prototype.cellAvailable = function (cell) {
   return !this.cellOccupied(cell);
 };
 
+// Check if the specified cell is taken
 Grid.prototype.cellOccupied = function (cell) {
   return !!this.cellContent(cell);
 };
 
 Grid.prototype.cellContent = function (cell) {
   if (this.withinBounds(cell)) {
-    return this.cells[cell.x][cell.y];
+    return this.cells.get(cell.q + "," + cell.r);
   } else {
     return null;
   }
@@ -87,28 +85,26 @@ Grid.prototype.cellContent = function (cell) {
 
 // Inserts a tile at its position
 Grid.prototype.insertTile = function (tile) {
-  this.cells[tile.x][tile.y] = tile;
+  this.cells.set(tile.position.q + "," + tile.position.r, tile);
 };
 
 Grid.prototype.removeTile = function (tile) {
-  this.cells[tile.x][tile.y] = null;
+  this.cells.delete(tile.position.q + "," + tile.position.r);
 };
 
 Grid.prototype.withinBounds = function (position) {
-  return position.x >= 0 && position.x < this.size &&
-         position.y >= 0 && position.y < this.size;
+  var s = -position.q - position.r;
+  return Math.abs(position.q) < this.size &&
+         Math.abs(position.r) < this.size &&
+         Math.abs(s) < this.size;
 };
 
 Grid.prototype.serialize = function () {
-  var cellState = [];
+  var cellState = {};
 
-  for (var x = 0; x < this.size; x++) {
-    var row = cellState[x] = [];
-
-    for (var y = 0; y < this.size; y++) {
-      row.push(this.cells[x][y] ? this.cells[x][y].serialize() : null);
-    }
-  }
+  this.eachCell(function (q, r, s, tile) {
+    cellState[q + "," + r] = tile ? tile.serialize() : null;
+  });
 
   return {
     size: this.size,

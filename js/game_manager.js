@@ -2,7 +2,7 @@ function GameManager(size, InputManager, Actuator, StorageManager) {
   this.size           = size; // Size of the grid
   this.inputManager   = new InputManager;
   this.storageManager = new StorageManager;
-  this.actuator       = new Actuator;
+  this.actuator       = new Actuator(this);
 
   this.startTiles     = 2;
 
@@ -111,7 +111,7 @@ GameManager.prototype.serialize = function () {
 
 // Save all tile positions and remove merger info
 GameManager.prototype.prepareTiles = function () {
-  this.grid.eachCell(function (x, y, tile) {
+  this.grid.eachCell(function (q, r, s, tile) {
     if (tile) {
       tile.mergedFrom = null;
       tile.savePosition();
@@ -121,9 +121,9 @@ GameManager.prototype.prepareTiles = function () {
 
 // Move a tile and its representation
 GameManager.prototype.moveTile = function (tile, cell) {
-  this.grid.cells[tile.x][tile.y] = null;
-  this.grid.cells[cell.x][cell.y] = tile;
+  this.grid.removeTile(tile);
   tile.updatePosition(cell);
+  this.grid.insertTile(tile);
 };
 
 // Move tiles on the grid in the specified direction
@@ -143,40 +143,37 @@ GameManager.prototype.move = function (direction) {
   this.prepareTiles();
 
   // Traverse the grid in the right direction and move tiles
-  traversals.x.forEach(function (x) {
-    traversals.y.forEach(function (y) {
-      cell = { x: x, y: y };
-      tile = self.grid.cellContent(cell);
+  traversals.cells.forEach(function (cell) {
+    tile = self.grid.cellContent(cell);
 
-      if (tile) {
-        var positions = self.findFarthestPosition(cell, vector);
-        var next      = self.grid.cellContent(positions.next);
+    if (tile) {
+      var positions = self.findFarthestPosition(cell, vector);
+      var next      = self.grid.cellContent(positions.next);
 
-        // Only one merger per row traversal?
-        if (next && next.value === tile.value && !next.mergedFrom) {
-          var merged = new Tile(positions.next, tile.value * 2);
-          merged.mergedFrom = [tile, next];
+      // Only one merger per row traversal?
+      if (next && next.value === tile.value && !next.mergedFrom) {
+        var merged = new Tile(positions.next, tile.value * 2);
+        merged.mergedFrom = [tile, next];
 
-          self.grid.insertTile(merged);
-          self.grid.removeTile(tile);
+        self.grid.insertTile(merged);
+        self.grid.removeTile(tile);
 
-          // Converge the two tiles' positions
-          tile.updatePosition(positions.next);
+        // Converge the two tiles' positions
+        tile.updatePosition(positions.next);
 
-          // Update the score
-          self.score += merged.value;
+        // Update the score
+        self.score += merged.value;
 
-          // The mighty 2048 tile
-          if (merged.value === 2048) self.won = true;
-        } else {
-          self.moveTile(tile, positions.farthest);
-        }
-
-        if (!self.positionsEqual(cell, tile)) {
-          moved = true; // The tile moved from its original cell!
-        }
+        // The mighty 2048 tile
+        if (merged.value === 2048) self.won = true;
+      } else {
+        self.moveTile(tile, positions.farthest);
       }
-    });
+
+      if (!self.positionsEqual(cell, tile)) {
+        moved = true; // The tile moved from its original cell!
+      }
+    }
   });
 
   if (moved) {
@@ -190,33 +187,50 @@ GameManager.prototype.move = function (direction) {
   }
 };
 
-// Get the vector representing the chosen direction
+// Get the vector representing the chosen direction (axial coordinates)
 GameManager.prototype.getVector = function (direction) {
-  // Vectors representing tile movement
+  // 0: up (W), 1: up-right (E), 2: down-right (D), 3: down (S), 4: down-left (A), 5: up-left (Q)
   var map = {
-    0: { x: 0,  y: -1 }, // Up
-    1: { x: 1,  y: 0 },  // Right
-    2: { x: 0,  y: 1 },  // Down
-    3: { x: -1, y: 0 }   // Left
+    0: { q: 0,  r: -1 }, // Up
+    1: { q: 1,  r: -1 }, // Up-right
+    2: { q: 1,  r: 0 },  // Down-right
+    3: { q: 0,  r: 1 },  // Down
+    4: { q: -1, r: 1 },  // Down-left
+    5: { q: -1, r: 0 }   // Up-left
   };
 
   return map[direction];
 };
 
-// Build a list of positions to traverse in the right order
+// Build a list of positions to traverse in the right order (axial coordinates)
 GameManager.prototype.buildTraversals = function (vector) {
-  var traversals = { x: [], y: [] };
+  var cells = [];
+  this.grid.eachCell(function (q, r, s, tile) {
+    cells.push({ q: q, r: r, s: s });
+  });
 
-  for (var pos = 0; pos < this.size; pos++) {
-    traversals.x.push(pos);
-    traversals.y.push(pos);
+  // Sort cells based on the direction vector
+  if (vector.q === 0 && vector.r === -1) {
+    // Up (W): sort by r ascending
+    cells.sort((a, b) => a.r - b.r);
+  } else if (vector.q === 1 && vector.r === -1) {
+    // Up-right (E): sort by q ascending
+    cells.sort((a, b) => a.q - b.q);
+  } else if (vector.q === 1 && vector.r === 0) {
+    // Down-right (D): sort by q ascending
+    cells.sort((a, b) => a.q - b.q);
+  } else if (vector.q === 0 && vector.r === 1) {
+    // Down (S): sort by r descending
+    cells.sort((a, b) => b.r - a.r);
+  } else if (vector.q === -1 && vector.r === 1) {
+    // Down-left (A): sort by q descending
+    cells.sort((a, b) => b.q - a.q);
+  } else if (vector.q === -1 && vector.r === 0) {
+    // Up-left (Q): sort by q descending
+    cells.sort((a, b) => b.q - a.q);
   }
 
-  // Always traverse from the farthest cell in the chosen direction
-  if (vector.x === 1) traversals.x = traversals.x.reverse();
-  if (vector.y === 1) traversals.y = traversals.y.reverse();
-
-  return traversals;
+  return { cells: cells };
 };
 
 GameManager.prototype.findFarthestPosition = function (cell, vector) {
@@ -225,7 +239,7 @@ GameManager.prototype.findFarthestPosition = function (cell, vector) {
   // Progress towards the vector direction until an obstacle is found
   do {
     previous = cell;
-    cell     = { x: previous.x + vector.x, y: previous.y + vector.y };
+    cell     = { q: previous.q + vector.q, r: previous.r + vector.r };
   } while (this.grid.withinBounds(cell) &&
            this.grid.cellAvailable(cell));
 
@@ -245,19 +259,22 @@ GameManager.prototype.tileMatchesAvailable = function () {
 
   var tile;
 
-  for (var x = 0; x < this.size; x++) {
-    for (var y = 0; y < this.size; y++) {
-      tile = this.grid.cellContent({ x: x, y: y });
+  for (var q = -this.size + 1; q < this.size; q++) {
+    for (var r = -this.size + 1; r < this.size; r++) {
+      var s = -q - r;
+      if (Math.abs(s) < this.size) {
+        tile = this.grid.cellContent({ q: q, r: r, s: s });
 
-      if (tile) {
-        for (var direction = 0; direction < 4; direction++) {
-          var vector = self.getVector(direction);
-          var cell   = { x: x + vector.x, y: y + vector.y };
+        if (tile) {
+          for (var direction = 0; direction < 6; direction++) {
+            var vector = self.getVector(direction);
+            var cell   = { q: q + vector.q, r: r + vector.r };
 
-          var other  = self.grid.cellContent(cell);
+            var other  = self.grid.cellContent(cell);
 
-          if (other && other.value === tile.value) {
-            return true; // These two tiles can be merged
+            if (other && other.value === tile.value) {
+              return true; // These two tiles can be merged
+            }
           }
         }
       }
@@ -268,5 +285,8 @@ GameManager.prototype.tileMatchesAvailable = function () {
 };
 
 GameManager.prototype.positionsEqual = function (first, second) {
-  return first.x === second.x && first.y === second.y;
+  return first.q === second.q && first.r === second.r;
 };
+
+// Expose GameManager globally
+window.GameManager = GameManager;
