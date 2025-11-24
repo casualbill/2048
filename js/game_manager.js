@@ -7,10 +7,17 @@ function GameManager(size, InputManager, Actuator, StorageManager) {
   this.startTiles     = 2;
 
   this.inputManager.on("move", this.move.bind(this));
+  this.inputManager.on("rotate", this.rotate.bind(this));
+  this.inputManager.on("toggle-gravity-sensor", this.toggleGravitySensor.bind(this));
   this.inputManager.on("restart", this.restart.bind(this));
   this.inputManager.on("keepPlaying", this.keepPlaying.bind(this));
 
   this.setup();
+  // Check if it's a mobile device to show gravity sensor button
+  if (this.isMobileDevice()) {
+    document.getElementById('gravity-sensor').style.display = 'inline-block';
+  }
+  this.gravitySensorEnabled = false;
 }
 
 // Restart the game
@@ -269,4 +276,181 @@ GameManager.prototype.tileMatchesAvailable = function () {
 
 GameManager.prototype.positionsEqual = function (first, second) {
   return first.x === second.x && first.y === second.y;
+};
+
+// Check if it's a mobile device
+GameManager.prototype.isMobileDevice = function () {
+  return typeof window.orientation !== 'undefined' || navigator.userAgent.indexOf('IEMobile') !== -1;
+};
+
+// Toggle gravity sensor
+GameManager.prototype.toggleGravitySensor = function () {
+  this.gravitySensorEnabled = !this.gravitySensorEnabled;
+  if (this.gravitySensorEnabled) {
+    window.addEventListener('deviceorientation', this.handleDeviceOrientation.bind(this));
+    document.getElementById('gravity-sensor').textContent = '关闭重力感应';
+  } else {
+    window.removeEventListener('deviceorientation', this.handleDeviceOrientation.bind(this));
+    document.getElementById('gravity-sensor').textContent = '开启重力感应';
+  }
+};
+
+// Handle device orientation for gravity sensor
+GameManager.prototype.handleDeviceOrientation = function (event) {
+  if (!this.gravitySensorEnabled || this.isGameTerminated()) return;
+  
+  // Calculate rotation angle based on device orientation
+  var alpha = event.alpha; // Z-axis rotation
+  var beta = event.beta; // X-axis rotation
+  var gamma = event.gamma; // Y-axis rotation
+  
+  // Determine rotation direction based on tilt
+  var rotationType = '';
+  if (Math.abs(gamma) > Math.abs(beta)) {
+    if (gamma > 45) {
+      rotationType = 'clockwise';
+    } else if (gamma < -45) {
+      rotationType = 'counterclockwise';
+    }
+  } else {
+    if (beta > 45) {
+      rotationType = '180';
+    }
+  }
+  
+  if (rotationType) {
+    this.rotate(rotationType);
+    // Disable sensor temporarily to prevent rapid rotations
+    setTimeout(function() {
+      this.gravitySensorEnabled = true;
+    }.bind(this), 1000);
+    this.gravitySensorEnabled = false;
+  }
+};
+
+// Rotate the grid
+GameManager.prototype.rotate = function (type) {
+  if (this.isGameTerminated()) return;
+  
+  // Apply rotation animation to the entire game container (including border)
+var gameContainer = document.querySelector('.game-container');
+gameContainer.classList.add('rotate-' + type);
+
+// Apply opposite rotation to tiles to keep them upright
+var tiles = document.querySelectorAll('.tile');
+tiles.forEach(function(tile) {
+  switch (type) {
+    case 'clockwise':
+      tile.classList.add('tile-rotate-counterclockwise');
+      break;
+    case 'counterclockwise':
+      tile.classList.add('tile-rotate-clockwise');
+      break;
+    case '180':
+      tile.classList.add('tile-rotate-180');
+      break;
+  }
+});
+  
+  // Rotate the grid based on type
+  switch (type) {
+    case 'clockwise':
+      this.grid.rotateClockwise();
+      break;
+    case 'counterclockwise':
+      this.grid.rotateCounterclockwise();
+      break;
+    case '180':
+      this.grid.rotate180();
+      break;
+  }
+  
+  // After rotation animation completes (0.6s), move all tiles down (gravity) and merge
+  setTimeout(function() {
+    // Remove animation class
+gameContainer.classList.remove('rotate-' + type);
+
+// Remove opposite rotation classes from tiles
+var tiles = document.querySelectorAll('.tile');
+tiles.forEach(function(tile) {
+  tile.classList.remove('tile-rotate-clockwise');
+  tile.classList.remove('tile-rotate-counterclockwise');
+  tile.classList.remove('tile-rotate-180');
+});
+    // Move tiles down
+    this.move(2); // 2 is the direction code for down
+    // Add bounce effect to tiles
+    var tiles = document.querySelectorAll('.tile');
+    tiles.forEach(function(tile) {
+      tile.classList.add('bounce');
+      // Remove bounce class after animation completes
+      setTimeout(function() {
+        tile.classList.remove('bounce');
+      }, 500);
+    });
+  }.bind(this), 600);
+};
+
+// Override the move method to handle gravity and animation
+GameManager.prototype.move = function (direction) {
+  // 0: up, 1: right, 2: down, 3: left
+  var self = this;
+
+  if (this.isGameTerminated()) return; // Don't do anything if the game's over
+
+  var cell, tile;
+
+  var vector     = this.getVector(direction);
+  var traversals = this.buildTraversals(vector);
+  var moved      = false;
+
+  // Save the current tile positions and remove merger information
+  this.prepareTiles();
+
+  // Traverse the grid in the right direction and move tiles
+  traversals.x.forEach(function (x) {
+    traversals.y.forEach(function (y) {
+      cell = { x: x, y: y };
+      tile = self.grid.cellContent(cell);
+
+      if (tile) {
+        var positions = self.findFarthestPosition(cell, vector);
+        var next      = self.grid.cellContent(positions.next);
+
+        // Only one merger per row traversal?
+        if (next && next.value === tile.value && !next.mergedFrom) {
+          var merged = new Tile(positions.next, tile.value * 2);
+          merged.mergedFrom = [tile, next];
+
+          self.grid.insertTile(merged);
+          self.grid.removeTile(tile);
+
+          // Converge the two tiles' positions
+          tile.updatePosition(positions.next);
+
+          // Update the score
+          self.score += merged.value;
+
+          // The mighty 2048 tile
+          if (merged.value === 2048) self.won = true;
+        } else {
+          self.moveTile(tile, positions.farthest);
+        }
+
+        if (!self.positionsEqual(cell, tile)) {
+          moved = true; // The tile moved from its original cell!
+        }
+      }
+    });
+  });
+
+  if (moved) {
+    this.addRandomTile();
+
+    if (!this.movesAvailable()) {
+      this.over = true; // Game over!
+    }
+
+    this.actuate();
+  }
 };
