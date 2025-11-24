@@ -115,3 +115,54 @@ Grid.prototype.serialize = function () {
     cells: cellState
   };
 };
+
+// Rotate the grid 90 degrees clockwise
+Grid.prototype.rotateClockwise = function () {
+  var newCells = [];
+  for (var y = 0; y < this.size; y++) {
+    var newRow = newCells[y] = [];
+    for (var x = this.size - 1; x >= 0; x--) {
+      var tile = this.cells[x][y];
+      if (tile) {
+        tile.x = y;
+        tile.y = this.size - 1 - x;
+      }
+      newRow.push(tile);
+    }
+  }
+  this.cells = newCells;
+};
+
+// Rotate the grid 90 degrees counterclockwise
+Grid.prototype.rotateCounterclockwise = function () {
+  var newCells = [];
+  for (var y = this.size - 1; y >= 0; y--) {
+    var newRow = newCells[y] = [];
+    for (var x = 0; x < this.size; x++) {
+      var tile = this.cells[x][y];
+      if (tile) {
+        tile.x = this.size - 1 - y;
+        tile.y = x;
+      }
+      newRow.push(tile);
+    }
+  }
+  this.cells = newCells;
+};
+
+// Rotate the grid 180 degrees
+Grid.prototype.rotate180 = function () {
+  var newCells = [];
+  for (var x = this.size - 1; x >= 0; x--) {
+    var newRow = newCells[x] = [];
+    for (var y = this.size - 1; y >= 0; y--) {
+      var tile = this.cells[x][y];
+      if (tile) {
+        tile.x = this.size - 1 - x;
+        tile.y = this.size - 1 - y;
+      }
+      newRow.push(tile);
+    }
+  }
+  this.cells = newCells;
+};

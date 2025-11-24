@@ -194,8 +194,201 @@ hr {
       .game-container .game-message a.keep-playing-button {
         display: none; }
     .game-container .game-message.game-won {
-      background: rgba(237, 194, 46, 0.5);
-      color: #f9f6f2; }
+  background: rgba(237, 194, 46, 0.5);
+  color: #f9f6f2; }
+
+/* Rotation styles */
+.rotation-buttons {
+  text-align: center;
+  margin-top: 20px;
+}
+
+.rotation-buttons button {
+  display: inline-block;
+  background: #8f7a66;
+  border: none;
+  border-radius: 3px;
+  padding: 10px 20px;
+  margin: 0 5px;
+  text-decoration: none;
+  color: #f9f6f2;
+  font-size: 16px;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.rotation-buttons button:hover {
+  background: #9f8b77;
+}
+
+/* Animation styles */
+.grid-container {
+  position: absolute;
+  z-index: 1;
+}
+
+/* Rotate animation for grid */
+@-webkit-keyframes rotate-clockwise {
+  from {
+    -webkit-transform: rotate(0deg);
+  }
+  to {
+    -webkit-transform: rotate(90deg);
+  }
+}
+
+@-moz-keyframes rotate-clockwise {
+  from {
+    -moz-transform: rotate(0deg);
+  }
+  to {
+    -moz-transform: rotate(90deg);
+  }
+}
+
+@keyframes rotate-clockwise {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(90deg);
+  }
+}
+
+@-webkit-keyframes rotate-counterclockwise {
+  from {
+    -webkit-transform: rotate(0deg);
+  }
+  to {
+    -webkit-transform: rotate(-90deg);
+  }
+}
+
+@-moz-keyframes rotate-counterclockwise {
+  from {
+    -moz-transform: rotate(0deg);
+  }
+  to {
+    -moz-transform: rotate(-90deg);
+  }
+}
+
+@keyframes rotate-counterclockwise {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(-90deg);
+  }
+}
+
+@-webkit-keyframes rotate-180 {
+  from {
+    -webkit-transform: rotate(0deg);
+  }
+  to {
+    -webkit-transform: rotate(180deg);
+  }
+}
+
+@-moz-keyframes rotate-180 {
+  from {
+    -moz-transform: rotate(0deg);
+  }
+  to {
+    -moz-transform: rotate(180deg);
+  }
+}
+
+@keyframes rotate-180 {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(180deg);
+  }
+}
+
+/* Bounce animation for tiles */
+@-webkit-keyframes bounce {
+  0%, 20%, 50%, 80%, 100% {
+    -webkit-transform: translateY(0);
+  }
+  40% {
+    -webkit-transform: translateY(-10px);
+  }
+  60% {
+    -webkit-transform: translateY(-5px);
+  }
+}
+
+@-moz-keyframes bounce {
+  0%, 20%, 50%, 80%, 100% {
+    -moz-transform: translateY(0);
+  }
+  40% {
+    -moz-transform: translateY(-10px);
+  }
+  60% {
+    -moz-transform: translateY(-5px);
+  }
+}
+
+@keyframes bounce {
+  0%, 20%, 50%, 80%, 100% {
+    transform: translateY(0);
+  }
+  40% {
+    transform: translateY(-10px);
+  }
+  60% {
+    transform: translateY(-5px);
+  }
+}
+
+/* Apply animations */
+.rotate-clockwise {
+  -webkit-animation: rotate-clockwise 0.6s ease-in-out;
+  -moz-animation: rotate-clockwise 0.6s ease-in-out;
+  animation: rotate-clockwise 0.6s ease-in-out;
+}
+
+.rotate-counterclockwise {
+  -webkit-animation: rotate-counterclockwise 0.6s ease-in-out;
+  -moz-animation: rotate-counterclockwise 0.6s ease-in-out;
+  animation: rotate-counterclockwise 0.6s ease-in-out;
+}
+
+.rotate-180 {
+  -webkit-animation: rotate-180 0.6s ease-in-out;
+  -moz-animation: rotate-180 0.6s ease-in-out;
+  animation: rotate-180 0.6s ease-in-out;
+}
+
+.tile.bounce {
+  -webkit-animation: bounce 0.5s ease-in-out;
+  -moz-animation: bounce 0.5s ease-in-out;
+  animation: bounce 0.5s ease-in-out;
+}
+
+/* Tile rotation classes to keep them upright */
+.tile-rotate-clockwise {
+  -webkit-animation: rotate-clockwise 0.6s ease-in-out;
+  -moz-animation: rotate-clockwise 0.6s ease-in-out;
+  animation: rotate-clockwise 0.6s ease-in-out;
+}
+
+.tile-rotate-counterclockwise {
+  -webkit-animation: rotate-counterclockwise 0.6s ease-in-out;
+  -moz-animation: rotate-counterclockwise 0.6s ease-in-out;
+  animation: rotate-counterclockwise 0.6s ease-in-out;
+}
+
+.tile-rotate-180 {
+  -webkit-animation: rotate-180 0.6s ease-in-out;
+  -moz-animation: rotate-180 0.6s ease-in-out;
+  animation: rotate-180 0.6s ease-in-out;
+}
       .game-container .game-message.game-won a.keep-playing-button {
         display: inline-block; }
     .game-container .game-message.game-won, .game-container .game-message.game-over {
@@ -315,12 +508,13 @@ hr {
 
 .tile {
   position: absolute;
-  -webkit-transition: 100ms ease-in-out;
-  -moz-transition: 100ms ease-in-out;
-  transition: 100ms ease-in-out;
+  -webkit-transition: 0s ease-in-out;
+  -moz-transition: 0s ease-in-out;
+  transition: 0s ease-in-out;
   -webkit-transition-property: -webkit-transform;
   -moz-transition-property: -moz-transform;
-  transition-property: transform; }
+  transition-property: transform;
+  transform: rotate(0deg); }
   .tile .tile-inner {
     border-radius: 3px;
     background: #eee4da;

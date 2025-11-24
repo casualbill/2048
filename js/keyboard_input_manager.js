@@ -35,18 +35,18 @@ KeyboardInputManager.prototype.listen = function () {
   var self = this;
 
   var map = {
-    38: 0, // Up
-    39: 1, // Right
-    40: 2, // Down
-    37: 3, // Left
-    75: 0, // Vim up
-    76: 1, // Vim right
-    74: 2, // Vim down
-    72: 3, // Vim left
-    87: 0, // W
-    68: 1, // D
-    83: 2, // S
-    65: 3  // A
+    38: 0, // Up (unused)
+    39: "clockwise", // Right → rotate clockwise
+    40: "180", // Down → rotate 180°
+    37: "counterclockwise", // Left → rotate counterclockwise
+    75: 0, // Vim up (unused)
+    76: "clockwise", // Vim right → rotate clockwise
+    74: "180", // Vim down → rotate 180°
+    72: "counterclockwise", // Vim left → rotate counterclockwise
+    87: 0, // W (unused)
+    68: "clockwise", // D → rotate clockwise
+    83: "180", // S → rotate 180°
+    65: "counterclockwise"  // A → rotate counterclockwise
   };
 
   // Respond to direction keys
@@ -58,7 +58,11 @@ KeyboardInputManager.prototype.listen = function () {
     if (!modifiers) {
       if (mapped !== undefined) {
         event.preventDefault();
-        self.emit("move", mapped);
+        if (typeof mapped === 'string') {
+          self.emit("rotate", mapped);
+        } else {
+          self.emit("move", mapped);
+        }
       }
     }
 
@@ -72,6 +76,24 @@ KeyboardInputManager.prototype.listen = function () {
   this.bindButtonPress(".retry-button", this.restart);
   this.bindButtonPress(".restart-button", this.restart);
   this.bindButtonPress(".keep-playing-button", this.keepPlaying);
+  // Bind rotation buttons
+  this.bindButtonPress("#rotate-clockwise", function(event) {
+    event.preventDefault();
+    this.emit("rotate", "clockwise");
+  });
+  this.bindButtonPress("#rotate-counterclockwise", function(event) {
+    event.preventDefault();
+    this.emit("rotate", "counterclockwise");
+  });
+  this.bindButtonPress("#rotate-180", function(event) {
+    event.preventDefault();
+    this.emit("rotate", "180");
+  });
+  // Bind gravity sensor button
+  this.bindButtonPress("#gravity-sensor", function(event) {
+    event.preventDefault();
+    this.emit("toggle-gravity-sensor");
+  });
 
   // Respond to swipe events
   var touchStartClientX, touchStartClientY;
