@@ -1,5 +1,7 @@
 function KeyboardInputManager() {
   this.events = {};
+  this.listeners = {};
+  this.listeners = {};
 
   if (window.navigator.msPointerEnabled) {
     //Internet Explorer 10 style
@@ -50,7 +52,7 @@ KeyboardInputManager.prototype.listen = function () {
   };
 
   // Respond to direction keys
-  document.addEventListener("keydown", function (event) {
+  this.listeners.keydown = function (event) {
     var modifiers = event.altKey || event.ctrlKey || event.metaKey ||
                     event.shiftKey;
     var mapped    = map[event.which];
@@ -66,7 +68,8 @@ KeyboardInputManager.prototype.listen = function () {
     if (!modifiers && event.which === 82) {
       self.restart.call(self, event);
     }
-  });
+  };
+  document.addEventListener("keydown", this.listeners.keydown);
 
   // Respond to button presses
   this.bindButtonPress(".retry-button", this.restart);
@@ -77,7 +80,7 @@ KeyboardInputManager.prototype.listen = function () {
   var touchStartClientX, touchStartClientY;
   var gameContainer = document.getElementsByClassName("game-container")[0];
 
-  gameContainer.addEventListener(this.eventTouchstart, function (event) {
+  this.listeners.touchStart = function (event) {
     if ((!window.navigator.msPointerEnabled && event.touches.length > 1) ||
         event.targetTouches.length > 1) {
       return; // Ignore if touching with more than 1 finger
@@ -92,13 +95,15 @@ KeyboardInputManager.prototype.listen = function () {
     }
 
     event.preventDefault();
-  });
+  };
+  gameContainer.addEventListener(this.eventTouchstart, this.listeners.touchStart);
 
-  gameContainer.addEventListener(this.eventTouchmove, function (event) {
+  this.listeners.touchMove = function (event) {
     event.preventDefault();
-  });
+  };
+  gameContainer.addEventListener(this.eventTouchmove, this.listeners.touchMove);
 
-  gameContainer.addEventListener(this.eventTouchend, function (event) {
+  this.listeners.touchEnd = function (event) {
     if ((!window.navigator.msPointerEnabled && event.touches.length > 0) ||
         event.targetTouches.length > 0) {
       return; // Ignore if still touching with one or more fingers
@@ -124,7 +129,24 @@ KeyboardInputManager.prototype.listen = function () {
       // (right : left) : (down : up)
       self.emit("move", absDx > absDy ? (dx > 0 ? 1 : 3) : (dy > 0 ? 2 : 0));
     }
-  });
+  };
+  gameContainer.addEventListener(this.eventTouchend, this.listeners.touchEnd);
+};
+
+KeyboardInputManager.prototype.removeListeners = function () {
+  var gameContainer = document.getElementsByClassName("game-container")[0];
+  if (this.listeners.keydown) {
+    document.removeEventListener("keydown", this.listeners.keydown);
+  }
+  if (this.listeners.touchStart && gameContainer) {
+    gameContainer.removeEventListener(this.eventTouchstart, this.listeners.touchStart);
+  }
+  if (this.listeners.touchMove && gameContainer) {
+    gameContainer.removeEventListener(this.eventTouchmove, this.listeners.touchMove);
+  }
+  if (this.listeners.touchEnd && gameContainer) {
+    gameContainer.removeEventListener(this.eventTouchend, this.listeners.touchEnd);
+  }
 };
 
 KeyboardInputManager.prototype.restart = function (event) {
