@@ -21,6 +21,7 @@ window.fakeStorage = {
 function LocalStorageManager() {
   this.bestScoreKey     = "bestScore";
   this.gameStateKey     = "gameState";
+  this.sessionIdKey     = "sessionId"; // New: Session ID key
 
   var supported = this.localStorageSupported();
   this.storage = supported ? window.localStorage : window.fakeStorage;
@@ -60,4 +61,13 @@ LocalStorageManager.prototype.setGameState = function (gameState) {
 
 LocalStorageManager.prototype.clearGameState = function () {
   this.storage.removeItem(this.gameStateKey);
+};
+
+// Session ID getters/setters
+LocalStorageManager.prototype.getSessionId = function () {
+  return this.storage.getItem(this.sessionIdKey);
+};
+
+LocalStorageManager.prototype.setSessionId = function (sessionId) {
+  this.storage.setItem(this.sessionIdKey, sessionId);
 };
