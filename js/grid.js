@@ -74,7 +74,8 @@ Grid.prototype.cellAvailable = function (cell) {
 };
 
 Grid.prototype.cellOccupied = function (cell) {
-  return !!this.cellContent(cell);
+  const tile = this.cellContent(cell);
+  return tile && tile.value !== 0; // 0 value indicates disabled cell
 };
 
 Grid.prototype.cellContent = function (cell) {

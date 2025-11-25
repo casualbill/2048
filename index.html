@@ -29,6 +29,33 @@
     <div class="above-game">
       <p class="game-intro">Join the numbers and get to the <strong>2048 tile!</strong></p>
       <a class="restart-button">New Game</a>
+      <a class="editor-button">Map Editor</a>
+      <a class="custom-map-button">Use Custom Map</a>
+    </div>
+
+    <!-- Map Editor Interface -->
+    <div class="editor-container">
+      <div class="editor-header">
+        <h2>Map Editor</h2>
+        <div class="editor-controls">
+          <select id="size-select">
+            <option value="4">4x4</option>
+            <option value="5">5x5</option>
+            <option value="6">6x6</option>
+            <option value="7">7x7</option>
+            <option value="8">8x8</option>
+          </select>
+          <label><input type="checkbox" id="brush-mode"> Brush Mode</label>
+          <button id="save-map-btn">Save Map</button>
+          <button id="close-editor-btn">Close</button>
+        </div>
+      </div>
+      <div class="editor-grid-container">
+        <!-- Editor grid will be generated here -->
+      </div>
+      <div class="editor-validation">
+        <p id="validation-message"></p>
+      </div>
     </div>
 
     <div class="game-container">
@@ -88,12 +115,13 @@
   <script src="js/bind_polyfill.js"></script>
   <script src="js/classlist_polyfill.js"></script>
   <script src="js/animframe_polyfill.js"></script>
-  <script src="js/keyboard_input_manager.js"></script>
+  <script src="js/keyboard_input_manager.js?v=2"></script>
   <script src="js/html_actuator.js"></script>
   <script src="js/grid.js"></script>
   <script src="js/tile.js"></script>
   <script src="js/local_storage_manager.js"></script>
   <script src="js/game_manager.js"></script>
+  <script src="js/map_editor.js"></script>
   <script src="js/application.js"></script>
 </body>
 </html>

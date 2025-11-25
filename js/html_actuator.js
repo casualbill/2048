@@ -47,6 +47,9 @@ HTMLActuator.prototype.clearContainer = function (container) {
 };
 
 HTMLActuator.prototype.addTile = function (tile) {
+  // Skip disabled cells (value 0)
+  if (tile.value === 0) return;
+  
   var self = this;
 
   var wrapper   = document.createElement("div");

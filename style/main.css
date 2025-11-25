@@ -756,3 +756,111 @@ hr {
     margin-top: 90px !important; }
   .game-message .lower {
     margin-top: 30px !important; } }
+
+/* Map Editor Styles */
+.editor-container {
+  display: none;
+  margin-top: 40px;
+  position: relative;
+  padding: 15px;
+  background: #bbada0;
+  border-radius: 6px;
+  width: 500px;
+  height: auto;
+  box-sizing: border-box;
+}
+
+.editor-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+  color: #f9f6f2;
+}
+
+.editor-header h2 {
+  margin: 0;
+  font-size: 30px;
+}
+
+.editor-controls {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+#size-select {
+  padding: 5px;
+  border-radius: 3px;
+  border: none;
+  font-family: "Clear Sans", "Helvetica Neue", Arial, sans-serif;
+  font-size: 16px;
+}
+
+#brush-mode {
+  margin-right: 5px;
+}
+
+#save-map-btn, #close-editor-btn {
+  background: #8f7a66;
+  border-radius: 3px;
+  padding: 0 15px;
+  text-decoration: none;
+  color: #f9f6f2;
+  height: 30px;
+  line-height: 32px;
+  border: none;
+  cursor: pointer;
+  font-family: "Clear Sans", "Helvetica Neue", Arial, sans-serif;
+  font-size: 16px;
+}
+
+.editor-grid-container {
+  background: #bbada0;
+  border-radius: 6px;
+  padding: 10px;
+  margin-bottom: 15px;
+}
+
+.editor-grid-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.editor-grid-row:last-child {
+  margin-bottom: 0;
+}
+
+.editor-grid-cell {
+  width: 50px;
+  height: 50px;
+  border-radius: 3px;
+  background: rgba(238, 228, 218, 0.35);
+  cursor: pointer;
+}
+
+.editor-grid-cell.disabled {
+  background: rgba(0, 0, 0, 0.3);
+}
+
+.editor-validation {
+  text-align: center;
+  color: #f9f6f2;
+  font-weight: bold;
+}
+
+.editor-button, .custom-map-button {
+  display: inline-block;
+  background: #8f7a66;
+  border-radius: 3px;
+  padding: 0 20px;
+  text-decoration: none;
+  color: #f9f6f2;
+  height: 40px;
+  line-height: 42px;
+  display: block;
+  text-align: center;
+  float: right;
+  margin-left: 10px;
+}
