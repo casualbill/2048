@@ -1,4 +1,5 @@
 function Tile(position, value) {
+  this.id               = Tile.nextId++;
   this.x                = position.x;
   this.y                = position.y;
   this.value            = value || 2;
@@ -6,6 +7,9 @@ function Tile(position, value) {
   this.previousPosition = null;
   this.mergedFrom       = null; // Tracks tiles that merged together
 }
+
+// Static counter for unique tile ids
+Tile.nextId = 1;
 
 Tile.prototype.savePosition = function () {
   this.previousPosition = { x: this.x, y: this.y };
