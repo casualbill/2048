@@ -1,10 +1,12 @@
-function GameManager(size, InputManager, Actuator, StorageManager) {
+function GameManager(size, InputManager, Actuator, StorageManager, MapEditor) {
   this.size           = size; // Size of the grid
   this.inputManager   = new InputManager;
   this.storageManager = new StorageManager;
   this.actuator       = new Actuator;
+  this.mapEditor      = new MapEditor(this);
 
   this.startTiles     = 2;
+  this.customMap      = null;
 
   this.inputManager.on("move", this.move.bind(this));
   this.inputManager.on("restart", this.restart.bind(this));
@@ -44,7 +46,21 @@ GameManager.prototype.setup = function () {
     this.won         = previousState.won;
     this.keepPlaying = previousState.keepPlaying;
   } else {
-    this.grid        = new Grid(this.size);
+    // Use custom map if available
+    if (this.customMap) {
+      this.size = this.customMap.size;
+      this.grid = new Grid(this.size);
+      // Mark disabled cells as occupied
+      for (let y = 0; y < this.size; y++) {
+        for (let x = 0; x < this.size; x++) {
+          if (!this.customMap.grid[y][x].enabled) {
+            this.grid.cells[x][y] = new Tile({ x, y }, 0); // 0 value indicates disabled cell
+          }
+        }
+      }
+    } else {
+      this.grid = new Grid(this.size);
+    }
     this.score       = 0;
     this.over        = false;
     this.won         = false;
