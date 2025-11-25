@@ -56,6 +56,10 @@ GameManager.prototype.setup = function () {
 
   // Update the actuator
   this.actuate();
+  // Send move to server if in multiplayer mode
+  if (window.multiplayerManager && window.multiplayerManager.currentRoom) {
+    window.multiplayerManager.sendMove(this.grid.serialize(), this.score);
+  }
 };
 
 // Set up the initial tiles to start the game with
@@ -187,6 +191,10 @@ GameManager.prototype.move = function (direction) {
     }
 
     this.actuate();
+    // Send move to server if in multiplayer mode
+    if (window.multiplayerManager && window.multiplayerManager.currentRoom) {
+      window.multiplayerManager.sendMove(this.grid.serialize(), this.score);
+    }
   }
 };
 
