@@ -3,6 +3,7 @@ function HTMLActuator() {
   this.scoreContainer   = document.querySelector(".score-container");
   this.bestContainer    = document.querySelector(".best-container");
   this.messageContainer = document.querySelector(".game-message");
+  this.leaderboardContainer = document.getElementById("leaderboard-container");
 
   this.score = 0;
 }
@@ -136,4 +137,78 @@ HTMLActuator.prototype.clearMessage = function () {
   // IE only takes one value to remove at a time.
   this.messageContainer.classList.remove("game-won");
   this.messageContainer.classList.remove("game-over");
+};
+
+HTMLActuator.prototype.fetchLeaderboard = function () {
+  fetch('/api/leaderboard')
+    .then(response => response.json())
+    .then(data => this.displayLeaderboard(data))
+    .catch(error => console.error('Error fetching leaderboard:', error));
+};
+
+HTMLActuator.prototype.displayLeaderboard = function (leaderboard) {
+  if (!this.leaderboardContainer) return;
+
+  this.clearContainer(this.leaderboardContainer);
+
+  const title = document.createElement('h2');
+  title.textContent = 'Leaderboard';
+  title.style.marginBottom = '10px';
+  this.leaderboardContainer.appendChild(title);
+
+  const table = document.createElement('table');
+  table.style.width = '100%';
+  table.style.borderCollapse = 'collapse';
+
+  // Header
+  const headerRow = document.createElement('tr');
+  const rankHeader = document.createElement('th');
+  rankHeader.textContent = 'Rank';
+  rankHeader.style.border = '1px solid #ccc';
+  rankHeader.style.padding = '5px';
+  rankHeader.style.textAlign = 'left';
+  headerRow.appendChild(rankHeader);
+
+  const scoreHeader = document.createElement('th');
+  scoreHeader.textContent = 'Score';
+  scoreHeader.style.border = '1px solid #ccc';
+  scoreHeader.style.padding = '5px';
+  scoreHeader.style.textAlign = 'left';
+  headerRow.appendChild(scoreHeader);
+
+  const timeHeader = document.createElement('th');
+  timeHeader.textContent = 'Time (s)';
+  timeHeader.style.border = '1px solid #ccc';
+  timeHeader.style.padding = '5px';
+  timeHeader.style.textAlign = 'left';
+  headerRow.appendChild(timeHeader);
+
+  table.appendChild(headerRow);
+
+  // Rows
+  leaderboard.forEach((entry, index) => {
+    const row = document.createElement('tr');
+
+    const rankCell = document.createElement('td');
+    rankCell.textContent = index + 1;
+    rankCell.style.border = '1px solid #ccc';
+    rankCell.style.padding = '5px';
+    row.appendChild(rankCell);
+
+    const scoreCell = document.createElement('td');
+    scoreCell.textContent = entry.score;
+    scoreCell.style.border = '1px solid #ccc';
+    scoreCell.style.padding = '5px';
+    row.appendChild(scoreCell);
+
+    const timeCell = document.createElement('td');
+    timeCell.textContent = entry.timeTaken.toFixed(2);
+    timeCell.style.border = '1px solid #ccc';
+    timeCell.style.padding = '5px';
+    row.appendChild(timeCell);
+
+    table.appendChild(row);
+  });
+
+  this.leaderboardContainer.appendChild(table);
 };

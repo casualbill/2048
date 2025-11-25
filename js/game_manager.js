@@ -5,6 +5,7 @@ function GameManager(size, InputManager, Actuator, StorageManager) {
   this.actuator       = new Actuator;
 
   this.startTiles     = 2;
+  this.operations     = []; // New: Array to store game operations
 
   this.inputManager.on("move", this.move.bind(this));
   this.inputManager.on("restart", this.restart.bind(this));
@@ -54,8 +55,13 @@ GameManager.prototype.setup = function () {
     this.addStartTiles();
   }
 
+  this.operations = []; // Reset operations for new game
+
   // Update the actuator
   this.actuate();
+
+  // Fetch leaderboard
+  this.actuator.fetchLeaderboard();
 };
 
 // Set up the initial tiles to start the game with
@@ -138,6 +144,7 @@ GameManager.prototype.move = function (direction) {
   var vector     = this.getVector(direction);
   var traversals = this.buildTraversals(vector);
   var moved      = false;
+  var initialScore = this.score; // New: Store initial score before move
 
   // Save the current tile positions and remove merger information
   this.prepareTiles();
@@ -184,7 +191,16 @@ GameManager.prototype.move = function (direction) {
 
     if (!this.movesAvailable()) {
       this.over = true; // Game over!
+      this.uploadGameRecord(); // New: Upload game record when game over
     }
+
+    // New: Record the operation
+    var scoreChange = this.score - initialScore;
+    this.operations.push({
+      direction: direction,
+      timestamp: new Date().getTime(),
+      scoreChange: scoreChange
+    });
 
     this.actuate();
   }
@@ -269,4 +285,39 @@ GameManager.prototype.tileMatchesAvailable = function () {
 
 GameManager.prototype.positionsEqual = function (first, second) {
   return first.x === second.x && first.y === second.y;
+};
+
+// New: Upload game record to backend
+GameManager.prototype.uploadGameRecord = function () {
+  const gameRecord = {
+    sessionId: this.storageManager.getSessionId() || this.generateSessionId(),
+    score: this.score,
+    timeTaken: this.operations.length > 0 ? (this.operations[this.operations.length - 1].timestamp - this.operations[0].timestamp) / 1000 : 0,
+    operations: this.operations
+  };
+
+  // Make API call to backend
+  fetch('/api/game', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(gameRecord)
+  })
+  .then(response => response.json())
+  .then(data => console.log('Game record uploaded successfully:', data))
+  .catch(error => console.error('Error uploading game record:', error));
+
+  // Generate and store session ID if not exists
+  if (!this.storageManager.getSessionId()) {
+    this.storageManager.setSessionId(gameRecord.sessionId);
+  }
+};
+
+// New: Generate unique session ID
+GameManager.prototype.generateSessionId = function () {
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+    var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
+    return v.toString(16);
+  });
 };

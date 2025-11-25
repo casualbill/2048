@@ -1,0 +1,44 @@
+services:
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.backend
+    ports:
+      - "8080:8080"
+    environment:
+      - DATABASE_URL=postgres://postgres:postgres@db:5436/postgres?sslmode=disable
+      - REDIS_URL=redis://redis:6379
+    depends_on:
+      - db
+      - redis
+
+  db:
+    image: postgres:14
+    ports:
+      - "5436:5432"
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=postgres
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+
+volumes:
+  postgres_data:
+  redis_data:
