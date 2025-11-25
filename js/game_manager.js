@@ -5,10 +5,25 @@ function GameManager(size, InputManager, Actuator, StorageManager) {
   this.actuator       = new Actuator;
 
   this.startTiles     = 2;
+  this.props = {
+    'bomb-timer': Math.floor(Math.random() * 2) + 1,
+    'bomb-random': Math.floor(Math.random() * 2) + 1,
+    'clear-same': Math.floor(Math.random() * 2) + 1,
+    'rotate': Math.floor(Math.random() * 2) + 1,
+    'swap': Math.floor(Math.random() * 2) + 1,
+    'undo': Math.floor(Math.random() * 2) + 1
+  };
+  this.propUsage = {};
+  this.currentProp = null;
+  this.swapTiles = [];
+  this.undoStack = [];
+  this.blockInput = false;
 
   this.inputManager.on("move", this.move.bind(this));
   this.inputManager.on("restart", this.restart.bind(this));
   this.inputManager.on("keepPlaying", this.keepPlaying.bind(this));
+  this.inputManager.on("propClick", this.handlePropClick.bind(this));
+  this.inputManager.on("tileClick", this.handleTileClick.bind(this));
 
   this.setup();
 }
@@ -34,21 +49,50 @@ GameManager.prototype.isGameTerminated = function () {
 // Set up the game
 GameManager.prototype.setup = function () {
   var previousState = this.storageManager.getGameState();
+  console.log('Previous state:', previousState);
+
+  // Check if previousState is valid
+  if (previousState) {
+    if (!previousState.grid || typeof previousState.grid !== 'object' || !previousState.grid.size || !previousState.grid.cells) {
+      previousState = null;
+      this.storageManager.clearGameState();
+    }
+  }
 
   // Reload the game from a previous game if present
   if (previousState) {
     this.grid        = new Grid(previousState.grid.size,
-                                previousState.grid.cells); // Reload grid
+                                previousState.grid); // Reload grid
     this.score       = previousState.score;
     this.over        = previousState.over;
     this.won         = previousState.won;
     this.keepPlaying = previousState.keepPlaying;
+    this.props       = previousState.props || {
+      'bomb-timer': Math.floor(Math.random() * 2) + 1,
+      'bomb-random': Math.floor(Math.random() * 2) + 1,
+      'clear-same': Math.floor(Math.random() * 2) + 1,
+      'rotate': Math.floor(Math.random() * 2) + 1,
+      'swap': Math.floor(Math.random() * 2) + 1,
+      'undo': Math.floor(Math.random() * 2) + 1
+    };
+    this.propUsage   = previousState.propUsage || {};
+    this.undoStack   = previousState.undoStack || [];
   } else {
     this.grid        = new Grid(this.size);
     this.score       = 0;
     this.over        = false;
     this.won         = false;
     this.keepPlaying = false;
+    this.props       = {
+      'bomb-timer': Math.floor(Math.random() * 2) + 1,
+      'bomb-random': Math.floor(Math.random() * 2) + 1,
+      'clear-same': Math.floor(Math.random() * 2) + 1,
+      'rotate': Math.floor(Math.random() * 2) + 1,
+      'swap': Math.floor(Math.random() * 2) + 1,
+      'undo': Math.floor(Math.random() * 2) + 1
+    };
+    this.propUsage   = {};
+    this.undoStack   = [];
 
     // Add the initial tiles
     this.addStartTiles();
@@ -84,6 +128,7 @@ GameManager.prototype.actuate = function () {
   // Clear the state when the game is over (game over only, not win)
   if (this.over) {
     this.storageManager.clearGameState();
+    this.showPropUsage();
   } else {
     this.storageManager.setGameState(this.serialize());
   }
@@ -93,9 +138,266 @@ GameManager.prototype.actuate = function () {
     over:       this.over,
     won:        this.won,
     bestScore:  this.storageManager.getBestScore(),
-    terminated: this.isGameTerminated()
+    terminated: this.isGameTerminated(),
+    props:      this.props
   });
 
+};
+
+// Handle prop click
+GameManager.prototype.handlePropClick = function (propName) {
+  if (this.isGameTerminated() || this.blockInput) return;
+
+  if (this.props[propName] <= 0) return;
+
+  // Reset current prop state
+  this.currentProp = propName;
+  this.swapTiles = [];
+
+  // Update prop usage
+  if (!this.propUsage[propName]) {
+    this.propUsage[propName] = 0;
+  }
+
+  // For props that don't require tile selection
+  if (propName === 'bomb-random' || propName === 'rotate' || propName === 'undo') {
+    this.props[propName]--;
+    this.propUsage[propName]++;
+    this.blockInput = true;
+
+    setTimeout(() => {
+      this.executeProp(propName);
+      this.blockInput = false;
+      this.currentProp = null;
+      this.actuate();
+    }, 100);
+  } else {
+    // For props that require tile selection
+    this.actuator.showPropSelection(propName);
+  }
+};
+
+// Handle tile click for prop usage
+GameManager.prototype.handleTileClick = function (tilePosition) {
+  if (!this.currentProp || this.blockInput) return;
+
+  const tile = this.grid.cellContent(tilePosition);
+  if (!tile) return;
+
+  switch (this.currentProp) {
+    case 'bomb-timer':
+      this.applyTimerBomb(tile);
+      this.props[this.currentProp]--;
+      this.propUsage[this.currentProp]++;
+      this.currentProp = null;
+      this.actuate();
+      break;
+    case 'clear-same':
+      this.clearSameTiles(tile.value);
+      this.props[this.currentProp]--;
+      this.propUsage[this.currentProp]++;
+      this.currentProp = null;
+      this.blockInput = true;
+      setTimeout(() => {
+        this.blockInput = false;
+        this.actuate();
+      }, 1000);
+      break;
+    case 'swap':
+      this.swapTiles.push(tilePosition);
+      if (this.swapTiles.length === 2) {
+        this.swapTwoTiles(this.swapTiles[0], this.swapTiles[1]);
+        this.props[this.currentProp]--;
+        this.propUsage[this.currentProp]++;
+        this.currentProp = null;
+        this.swapTiles = [];
+        this.blockInput = true;
+        setTimeout(() => {
+          this.blockInput = false;
+          this.actuate();
+        }, 500);
+      }
+      break;
+  }
+};
+
+// Execute prop that doesn't require tile selection
+GameManager.prototype.executeProp = function (propName) {
+  switch (propName) {
+    case 'bomb-random':
+      this.activateRandomBomb();
+      break;
+    case 'rotate':
+      this.rotateOuterRing();
+      break;
+    case 'undo':
+      this.undoLastMove();
+      break;
+  }
+};
+
+// Show prop usage when game ends
+GameManager.prototype.showPropUsage = function () {
+  let usageText = '道具使用统计：\n';
+  for (const prop in this.propUsage) {
+    usageText += `${prop}: ${this.propUsage[prop]}次\n`;
+  }
+  alert(usageText);
+};
+
+// Apply timer bomb to a tile
+GameManager.prototype.applyTimerBomb = function (tile) {
+  tile.timer = 5;
+  this.actuator.showTimerBomb(tile);
+
+  // Update timer after each move
+  const originalMove = this.move;
+  this.move = (direction) => {
+    originalMove.call(this, direction);
+    this.updateTimerBombs();
+    this.actuate();
+  };
+};
+
+// Update timer bombs after each move
+GameManager.prototype.updateTimerBombs = function () {
+  this.grid.eachCell((x, y, tile) => {
+    if (tile && tile.timer > 0) {
+      tile.timer--;
+      if (tile.timer === 0) {
+        this.grid.removeTile(tile);
+        this.actuate();
+      }
+    }
+  });
+};
+
+// Activate random bomb
+GameManager.prototype.activateRandomBomb = function () {
+  const tiles = [];
+  this.grid.eachCell((x, y, tile) => {
+    if (tile) tiles.push(tile);
+  });
+
+  if (tiles.length === 0) return;
+
+  const randomTile = tiles[Math.floor(Math.random() * tiles.length)];
+  this.grid.removeTile(randomTile);
+};
+
+// Clear all tiles with the same value
+GameManager.prototype.clearSameTiles = function (value) {
+  this.grid.eachCell((x, y, tile) => {
+    if (tile && tile.value === value) {
+      this.grid.removeTile(tile);
+    }
+  });
+};
+
+// Rotate outer ring of tiles clockwise
+GameManager.prototype.rotateOuterRing = function () {
+  const size = this.size;
+  if (size !== 4) return;
+
+  // Save outer ring tiles
+  const topRow = [];
+  const rightCol = [];
+  const bottomRow = [];
+  const leftCol = [];
+
+  // Top row (excluding corners)
+  for (let y = 1; y < size - 1; y++) {
+    topRow.push(this.grid.cellContent({x: 0, y}));
+  }
+
+  // Right column (including corners)
+  for (let x = 0; x < size; x++) {
+    rightCol.push(this.grid.cellContent({x, y: size - 1}));
+  }
+
+  // Bottom row (excluding corners, reversed)
+  for (let y = size - 2; y > 0; y--) {
+    bottomRow.push(this.grid.cellContent({x: size - 1, y}));
+  }
+
+  // Left column (including corners)
+  for (let x = size - 1; x >= 0; x--) {
+    leftCol.push(this.grid.cellContent({x, y: 0}));
+  }
+
+  // Move tiles clockwise
+  // Top row gets left column (excluding bottom corner)
+  for (let y = 0; y < size; y++) {
+    const tile = leftCol[y];
+    if (tile) {
+      tile.updatePosition({x: 0, y});
+      this.grid.insertTile(tile);
+    }
+  }
+
+  // Right column gets top row (including left corner)
+  for (let x = 0; x < size; x++) {
+    const tile = topRow[x];
+    if (tile) {
+      tile.updatePosition({x, y: size - 1});
+      this.grid.insertTile(tile);
+    }
+  }
+
+  // Bottom row gets right column (excluding top corner)
+  for (let y = size - 1; y >= 0; y--) {
+    const tile = rightCol[y];
+    if (tile) {
+      tile.updatePosition({x: size - 1, y});
+      this.grid.insertTile(tile);
+    }
+  }
+
+  // Left column gets bottom row (including right corner)
+  for (let x = size - 1; x >= 0; x--) {
+    const tile = bottomRow[x];
+    if (tile) {
+      tile.updatePosition({x, y: 0});
+      this.grid.insertTile(tile);
+    }
+  }
+};
+
+// Swap two tiles
+GameManager.prototype.swapTwoTiles = function (pos1, pos2) {
+  const tile1 = this.grid.cellContent(pos1);
+  const tile2 = this.grid.cellContent(pos2);
+
+  if (!tile1 || !tile2) return;
+
+  // Swap positions
+  const tempPos = {x: tile1.x, y: tile1.y};
+  tile1.updatePosition({x: tile2.x, y: tile2.y});
+  tile2.updatePosition(tempPos);
+
+  // Update grid
+  this.grid.insertTile(tile1);
+  this.grid.insertTile(tile2);
+};
+
+// Undo last move
+GameManager.prototype.undoLastMove = function () {
+  if (this.undoStack.length === 0) return;
+
+  const lastState = this.undoStack.pop();
+  this.grid = new Grid(lastState.grid.size, lastState.grid.cells);
+  this.score = lastState.score;
+  this.over = lastState.over;
+  this.won = lastState.won;
+  this.keepPlaying = lastState.keepPlaying;
+};
+
+// Save current state for undo
+GameManager.prototype.saveStateForUndo = function () {
+  if (this.undoStack.length >= 3) {
+    this.undoStack.shift();
+  }
+  this.undoStack.push(this.serialize());
 };
 
 // Represent the current game as an object
@@ -105,7 +407,9 @@ GameManager.prototype.serialize = function () {
     score:       this.score,
     over:        this.over,
     won:         this.won,
-    keepPlaying: this.keepPlaying
+    keepPlaying: this.keepPlaying,
+    props:       this.props,
+    propUsage:   this.propUsage
   };
 };
 
@@ -131,7 +435,10 @@ GameManager.prototype.move = function (direction) {
   // 0: up, 1: right, 2: down, 3: left
   var self = this;
 
-  if (this.isGameTerminated()) return; // Don't do anything if the game's over
+  if (this.isGameTerminated() || this.blockInput) return; // Don't do anything if the game's over
+
+  // Save state for undo
+  this.saveStateForUndo();
 
   var cell, tile;
 
