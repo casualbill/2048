@@ -1,5 +1,7 @@
-function GameManager(size, InputManager, Actuator, StorageManager) {
+function GameManager(size, InputManager, Actuator, StorageManager, boardShape = 'square', shapeConfig = {}) {
   this.size           = size; // Size of the grid
+  this.boardShape     = boardShape;
+  this.shapeConfig    = shapeConfig;
   this.inputManager   = new InputManager;
   this.storageManager = new StorageManager;
   this.actuator       = new Actuator;
@@ -37,14 +39,18 @@ GameManager.prototype.setup = function () {
 
   // Reload the game from a previous game if present
   if (previousState) {
+    // Use boardShape and shapeConfig from previous state if available
+    const boardShape = previousState.boardShape || this.boardShape;
+    const shapeConfig = previousState.shapeConfig || this.shapeConfig;
+    
     this.grid        = new Grid(previousState.grid.size,
-                                previousState.grid.cells); // Reload grid
+                                previousState.grid.cells, boardShape, shapeConfig); // Reload grid
     this.score       = previousState.score;
     this.over        = previousState.over;
     this.won         = previousState.won;
     this.keepPlaying = previousState.keepPlaying;
   } else {
-    this.grid        = new Grid(this.size);
+    this.grid        = new Grid(this.size, null, this.boardShape, this.shapeConfig);
     this.score       = 0;
     this.over        = false;
     this.won         = false;
@@ -77,8 +83,8 @@ GameManager.prototype.addRandomTile = function () {
 
 // Sends the updated grid to the actuator
 GameManager.prototype.actuate = function () {
-  if (this.storageManager.getBestScore() < this.score) {
-    this.storageManager.setBestScore(this.score);
+  if (this.storageManager.getBestScore(this.boardShape) < this.score) {
+    this.storageManager.setBestScore(this.score, this.boardShape);
   }
 
   // Clear the state when the game is over (game over only, not win)
@@ -92,7 +98,7 @@ GameManager.prototype.actuate = function () {
     score:      this.score,
     over:       this.over,
     won:        this.won,
-    bestScore:  this.storageManager.getBestScore(),
+    bestScore:  this.storageManager.getBestScore(this.boardShape),
     terminated: this.isGameTerminated()
   });
 
@@ -105,7 +111,9 @@ GameManager.prototype.serialize = function () {
     score:       this.score,
     over:        this.over,
     won:         this.won,
-    keepPlaying: this.keepPlaying
+    keepPlaying: this.keepPlaying,
+    boardShape:  this.boardShape,
+    shapeConfig: this.shapeConfig
   };
 };
 
@@ -221,18 +229,51 @@ GameManager.prototype.buildTraversals = function (vector) {
 
 GameManager.prototype.findFarthestPosition = function (cell, vector) {
   var previous;
+  var self = this;
 
-  // Progress towards the vector direction until an obstacle is found
-  do {
-    previous = cell;
-    cell     = { x: previous.x + vector.x, y: previous.y + vector.y };
-  } while (this.grid.withinBounds(cell) &&
-           this.grid.cellAvailable(cell));
+  // Handle donut shape wrap-around
+  if (this.boardShape === 'donut' && this.shapeConfig.wrapAround) {
+    const size = this.size;
+    const maxDistance = size * 2;
+    let farthestCell = cell;
+    let nextCell = cell;
+    let distance = 0;
 
-  return {
-    farthest: previous,
-    next: cell // Used to check if a merge is required
-  };
+    while (distance < maxDistance) {
+      nextCell = { x: nextCell.x + vector.x, y: nextCell.y + vector.y };
+      distance++;
+
+      // Wrap around if out of bounds
+      if (nextCell.x < 0) nextCell.x = size - 1;
+      if (nextCell.x >= size) nextCell.x = 0;
+      if (nextCell.y < 0) nextCell.y = size - 1;
+      if (nextCell.y >= size) nextCell.y = 0;
+
+      // Check if cell is available
+      if (self.grid.withinBounds(nextCell) && self.grid.cellAvailable(nextCell)) {
+        farthestCell = nextCell;
+      } else {
+        break;
+      }
+    }
+
+    return {
+      farthest: farthestCell,
+      next: nextCell // Used to check if a merge is required
+    };
+  } else {
+    // Original behavior for other shapes
+    do {
+      previous = cell;
+      cell = { x: previous.x + vector.x, y: previous.y + vector.y };
+    } while (this.grid.withinBounds(cell) &&
+             this.grid.cellAvailable(cell));
+
+    return {
+      farthest: previous,
+      next: cell // Used to check if a merge is required
+    };
+  }
 };
 
 GameManager.prototype.movesAvailable = function () {

@@ -31,6 +31,21 @@
       <a class="restart-button">New Game</a>
     </div>
 
+    <div class="shape-selection">
+      <h2>选择棋盘形状</h2>
+      <div class="shape-options">
+        <button class="shape-option" data-shape="square">标准方形</button>
+        <button class="shape-option" data-shape="diamond">菱形</button>
+        <button class="shape-option" data-shape="circle">圆形</button>
+        <button class="shape-option" data-shape="trapezoid">梯形</button>
+        <button class="shape-option" data-shape="donut">回字形</button>
+      </div>
+      <div class="shape-preview">
+        <div class="preview-container" id="shape-preview"></div>
+      </div>
+      <button class="start-game">开始游戏</button>
+    </div>
+
     <div class="game-container">
       <div class="game-message">
         <p></p>
@@ -85,15 +100,15 @@
     </p>
   </div>
 
-  <script src="js/bind_polyfill.js"></script>
-  <script src="js/classlist_polyfill.js"></script>
-  <script src="js/animframe_polyfill.js"></script>
-  <script src="js/keyboard_input_manager.js"></script>
-  <script src="js/html_actuator.js"></script>
-  <script src="js/grid.js"></script>
-  <script src="js/tile.js"></script>
-  <script src="js/local_storage_manager.js"></script>
-  <script src="js/game_manager.js"></script>
-  <script src="js/application.js"></script>
+    <script src="js/animframe_polyfill.js"></script>
+    <script src="js/grid.js"></script>
+    <script src="js/tile.js"></script>
+    <script src="js/game_manager.js"></script>
+    <script src="js/board_shape_manager.js"></script>
+    <script src="js/local_storage_manager.js"></script>
+    <script src="js/html_actuator.js"></script>
+    <script src="js/keyboard_input_manager.js"></script>
+    <script src="js/shape_selection.js"></script>
+    <script src="js/application.js"></script>
 </body>
 </html>
