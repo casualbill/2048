@@ -111,9 +111,94 @@ strong.important {
 
 hr {
   border: none;
-  border-bottom: 1px solid #d8d4d0;
+  border-bottom: 1px solid #d8d8d8;
   margin-top: 20px;
-  margin-bottom: 30px; }
+  margin-bottom: 30px;
+}
+
+/* AI Controls Styles */
+.ai-controls {
+  margin: 20px 0;
+  text-align: center;
+}
+
+.ai-status {
+  font-size: 18px;
+  color: #776e65;
+  margin-bottom: 10px;
+  font-weight: bold;
+}
+
+.ai-mode-buttons {
+  margin-bottom: 10px;
+}
+
+.ai-mode-button {
+   display: inline-block;
+   background: #8f7a66;
+   border-radius: 3px;
+   padding: 0 20px;
+   text-decoration: none;
+   color: #f9f6f2;
+   height: 40px;
+   line-height: 42px;
+   cursor: pointer;
+   text-align: center;
+   margin-right: 10px;
+   border: none;
+   font-size: 16px;
+   vertical-align: top;
+ }
+
+.ai-mode-button:hover {
+  background: #9f8b77;
+}
+
+.ai-mode-button.active {
+  background: #bbada0;
+}
+
+.ai-speed-controls {
+  margin-top: 10px;
+}
+
+.ai-speed-button {
+   display: inline-block;
+   background: #8f7a66;
+   border-radius: 3px;
+   padding: 0 15px;
+   text-decoration: none;
+   color: #f9f6f2;
+   height: 30px;
+   line-height: 32px;
+   cursor: pointer;
+   text-align: center;
+   margin-right: 5px;
+   border: none;
+   font-size: 14px;
+   vertical-align: top;
+ }
+
+.ai-speed-button:hover {
+  background: #9f8b77;
+}
+
+.ai-speed-button.active {
+  background: #bbada0;
+}
+
+.ai-advice {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: rgba(255, 255, 255, 0.9);
+  padding: 10px;
+  border-radius: 5px;
+  font-size: 14px;
+  max-width: 200px;
+  color: #776e65;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+}
 
 .container {
   width: 500px;
@@ -533,21 +618,88 @@ hr {
 .game-explanation {
   margin-top: 50px; }
 
+.ai-controls {
+  clear: both;
+  margin-top: 10px;
+  text-align: center;
+}
+
+.ai-mode-selector {
+  margin-bottom: 10px;
+}
+
+.ai-mode-button {
+  display: inline-block;
+  background: #8f7a66;
+  border-radius: 3px;
+  padding: 0 15px;
+  text-decoration: none;
+  color: #f9f6f2;
+  height: 35px;
+  line-height: 37px;
+  margin: 0 5px;
+  border: none;
+  cursor: pointer;
+  font-size: 16px;
+}
+
+.ai-mode-button.active {
+  background: #bbada0;
+}
+
+.ai-speed-controls {
+  margin-bottom: 10px;
+}
+
+.ai-speed-button {
+  display: inline-block;
+  background: #8f7a66;
+  border-radius: 3px;
+  padding: 0 10px;
+  text-decoration: none;
+  color: #f9f6f2;
+  height: 30px;
+  line-height: 32px;
+  margin: 0 2px;
+  border: none;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.ai-speed-button.active {
+  background: #bbada0;
+}
+
+.ai-status {
+  font-size: 16px;
+  color: #776e65;
+}
+
+.ai-advice {
+  margin-top: 10px;
+  font-size: 16px;
+  color: #776e65;
+}
+
 @media screen and (max-width: 520px) {
   html, body {
-    font-size: 15px; }
+    font-size: 15px;
+  }
 
   body {
     margin: 20px 0;
-    padding: 0 20px; }
+    padding: 0 20px;
+  }
 
   h1.title {
     font-size: 27px;
-    margin-top: 15px; }
+    margin-top: 15px;
+  }
 
   .container {
     width: 280px;
-    margin: 0 auto; }
+    margin: 0 auto;
+  }
 
   .score-container, .best-container {
     margin-top: 0;

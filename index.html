@@ -28,6 +28,20 @@
 
     <div class="above-game">
       <p class="game-intro">Join the numbers and get to the <strong>2048 tile!</strong></p>
+      <div class="ai-controls">
+        <div class="ai-mode-selector">
+          <button id="ai-mode-auto" class="ai-mode-button">AI自动玩</button>
+          <button id="ai-mode-suggest" class="ai-mode-button">AI建议</button>
+          <button id="ai-mode-assist" class="ai-mode-button">协助模式</button>
+        </div>
+        <div class="ai-speed-controls" style="display: none;">
+          <span>AI速度:</span>
+          <button id="ai-speed-slow" class="ai-speed-button">慢</button>
+          <button id="ai-speed-medium" class="ai-speed-button">中</button>
+          <button id="ai-speed-fast" class="ai-speed-button">快</button>
+        </div>
+        <div class="ai-status" id="ai-status">AI未就绪</div>
+      </div>
       <a class="restart-button">New Game</a>
     </div>
 
@@ -72,6 +86,22 @@
       </div>
     </div>
 
+    <!-- AI Controls -->
+    <div class="ai-controls">
+      <div class="ai-status" id="ai-status">AI未加载</div>
+      <div class="ai-mode-buttons">
+        <button class="ai-mode-button" id="ai-mode-auto">AI自动玩</button>
+        <button class="ai-mode-button" id="ai-mode-advice">AI建议</button>
+        <button class="ai-mode-button" id="ai-mode-assist">协助模式</button>
+      </div>
+      <div class="ai-speed-controls" style="display: none;">
+        <span>AI速度:</span>
+        <button class="ai-speed-button" id="ai-speed-fast">快</button>
+        <button class="ai-speed-button" id="ai-speed-medium">中</button>
+        <button class="ai-speed-button" id="ai-speed-slow">慢</button>
+      </div>
+    </div>
+
     <p class="game-explanation">
       <strong class="important">How to play:</strong> Use your <strong>arrow keys</strong> to move the tiles. When two tiles with the same number touch, they <strong>merge into one!</strong>
     </p>
@@ -94,6 +124,10 @@
   <script src="js/tile.js"></script>
   <script src="js/local_storage_manager.js"></script>
   <script src="js/game_manager.js"></script>
+  <script type="module" crossorigin>
+    import * as webllm from 'https://esm.run/@mlc-ai/web-llm';
+    window.webllm = webllm;
+  </script>
   <script src="js/application.js"></script>
 </body>
 </html>
