@@ -36,9 +36,9 @@ GameManager.prototype.setup = function () {
   var previousState = this.storageManager.getGameState();
 
   // Reload the game from a previous game if present
-  if (previousState) {
-    this.grid        = new Grid(previousState.grid.size,
-                                previousState.grid.cells); // Reload grid
+  console.log('previousState:', previousState);
+  if (previousState && previousState.grid && Array.isArray(previousState.grid.cells) && previousState.grid.cells.every(row => Array.isArray(row))) {
+    this.grid        = new Grid(previousState.grid.size, previousState.grid.cells); // Reload grid
     this.score       = previousState.score;
     this.over        = previousState.over;
     this.won         = previousState.won;
@@ -53,6 +53,11 @@ GameManager.prototype.setup = function () {
     // Add the initial tiles
     this.addStartTiles();
   }
+  
+  // Initialize black hole
+  this.blackHolePosition = this.grid.randomAvailableCell();
+  this.blackHoleActive = true;
+  this.blackHoleCountdown = 0;
 
   // Update the actuator
   this.actuate();
@@ -72,6 +77,11 @@ GameManager.prototype.addRandomTile = function () {
     var tile = new Tile(this.grid.randomAvailableCell(), value);
 
     this.grid.insertTile(tile);
+    
+    // 30% chance to freeze tiles with value 16 or higher
+    if (tile.value >= 16 && Math.random() < 0.3) {
+      tile.freeze();
+    }
   }
 };
 
@@ -93,7 +103,9 @@ GameManager.prototype.actuate = function () {
     over:       this.over,
     won:        this.won,
     bestScore:  this.storageManager.getBestScore(),
-    terminated: this.isGameTerminated()
+    terminated: this.isGameTerminated(),
+    blackHoleActive: this.blackHoleActive,
+    blackHolePosition: this.blackHolePosition
   });
 
 };
@@ -101,7 +113,14 @@ GameManager.prototype.actuate = function () {
 // Represent the current game as an object
 GameManager.prototype.serialize = function () {
   return {
-    grid:        this.grid.serialize(),
+    grid: {
+      size: this.grid.size,
+      cells: this.grid.cells.map(function (row) {
+        return row.map(function (cell) {
+          return cell ? cell.serialize() : null;
+        });
+      })
+    },
     score:       this.score,
     over:        this.over,
     won:         this.won,
@@ -141,6 +160,30 @@ GameManager.prototype.move = function (direction) {
 
   // Save the current tile positions and remove merger information
   this.prepareTiles();
+  
+  // Decrement freeze countdown for all frozen tiles
+  this.grid.eachCell(function (x, y, tile) {
+    if (tile && tile.frozen) {
+      tile.decrementFreezeCountdown();
+    }
+  });
+
+  // Increment black hole countdown
+  if (this.blackHoleActive) {
+    this.blackHoleCountdown++;
+    
+    // After 50 moves, black hole collapses and moves to a new position
+    if (this.blackHoleCountdown >= 50) {
+      this.blackHoleActive = false;
+      // Wait for animation to complete before creating new black hole
+      setTimeout(function() {
+        self.blackHolePosition = self.grid.randomAvailableCell();
+        self.blackHoleActive = true;
+        self.blackHoleCountdown = 0;
+        self.actuate();
+      }, 500);
+    }
+  }
 
   // Traverse the grid in the right direction and move tiles
   traversals.x.forEach(function (x) {
@@ -148,12 +191,16 @@ GameManager.prototype.move = function (direction) {
       cell = { x: x, y: y };
       tile = self.grid.cellContent(cell);
 
-      if (tile) {
+      if (tile && !tile.frozen) { // Skip frozen tiles
         var positions = self.findFarthestPosition(cell, vector);
         var next      = self.grid.cellContent(positions.next);
 
-        // Only one merger per row traversal?
-        if (next && next.value === tile.value && !next.mergedFrom) {
+        // Check if tile falls into black hole
+        if (self.blackHoleActive && positions.farthest.x === self.blackHolePosition.x && positions.farthest.y === self.blackHolePosition.y) {
+          // Tile is absorbed by black hole
+          self.grid.removeTile(tile);
+          moved = true;
+        } else if (next && next.value === tile.value && !next.mergedFrom && !next.frozen) { // Skip merging with frozen tiles
           var merged = new Tile(positions.next, tile.value * 2);
           merged.mergedFrom = [tile, next];
 
@@ -168,6 +215,11 @@ GameManager.prototype.move = function (direction) {
 
           // The mighty 2048 tile
           if (merged.value === 2048) self.won = true;
+          
+          // 30% chance to freeze tiles with value 16 or higher
+          if (merged.value >= 16 && Math.random() < 0.3) {
+            merged.freeze();
+          }
         } else {
           self.moveTile(tile, positions.farthest);
         }

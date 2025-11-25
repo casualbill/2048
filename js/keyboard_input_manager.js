@@ -1,4 +1,5 @@
 function KeyboardInputManager() {
+  console.log('KeyboardInputManager initialized');
   this.events = {};
 
   if (window.navigator.msPointerEnabled) {
