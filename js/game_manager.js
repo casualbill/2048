@@ -5,10 +5,13 @@ function GameManager(size, InputManager, Actuator, StorageManager) {
   this.actuator       = new Actuator;
 
   this.startTiles     = 2;
+  this.mode           = 'classic'; // 'classic' or 'maze'
+  this.walls          = []; // Array to store walls
 
   this.inputManager.on("move", this.move.bind(this));
   this.inputManager.on("restart", this.restart.bind(this));
   this.inputManager.on("keepPlaying", this.keepPlaying.bind(this));
+  this.inputManager.on("modeChange", this.changeMode.bind(this));
 
   this.setup();
 }
@@ -24,6 +27,12 @@ GameManager.prototype.restart = function () {
 GameManager.prototype.keepPlaying = function () {
   this.keepPlaying = true;
   this.actuator.continueGame(); // Clear the game won/lost message
+};
+
+// Change game mode
+GameManager.prototype.changeMode = function (mode) {
+  this.mode = mode;
+  this.restart(); // Restart game when changing mode
 };
 
 // Return true if the game is lost, or has won and the user hasn't kept playing
@@ -43,12 +52,20 @@ GameManager.prototype.setup = function () {
     this.over        = previousState.over;
     this.won         = previousState.won;
     this.keepPlaying = previousState.keepPlaying;
+    this.mode        = previousState.mode || 'classic';
+    this.walls       = previousState.walls || [];
   } else {
     this.grid        = new Grid(this.size);
     this.score       = 0;
     this.over        = false;
     this.won         = false;
     this.keepPlaying = false;
+    this.walls       = [];
+
+    // Generate walls if in maze mode
+    if (this.mode === 'maze') {
+      this.generateWalls();
+    }
 
     // Add the initial tiles
     this.addStartTiles();
@@ -56,6 +73,66 @@ GameManager.prototype.setup = function () {
 
   // Update the actuator
   this.actuate();
+};
+
+// Generate random walls for maze mode
+GameManager.prototype.generateWalls = function () {
+  this.walls = [];
+  var wallCount = Math.floor(Math.random() * 2) + 2; // 2-3 walls
+
+  for (var i = 0; i < wallCount; i++) {
+    var isHorizontal = Math.random() < 0.5;
+    var length = Math.floor(Math.random() * 3) + 1; // 1-3 cells long
+    var x, y;
+
+    if (isHorizontal) {
+      // Horizontal wall: between rows y and y+1, columns x to x+length
+      y = Math.floor(Math.random() * (this.size - 1));
+      x = Math.floor(Math.random() * (this.size - length + 1));
+    } else {
+      // Vertical wall: between columns x and x+1, rows y to y+length
+      x = Math.floor(Math.random() * (this.size - 1));
+      y = Math.floor(Math.random() * (this.size - length + 1));
+    }
+
+    // Check if this wall overlaps with existing walls
+    var overlaps = false;
+    for (var j = 0; j < this.walls.length; j++) {
+      var existingWall = this.walls[j];
+      if (existingWall.isHorizontal === isHorizontal) {
+        if (isHorizontal) {
+          if (existingWall.y === y) {
+            // Check x range overlap
+            var existingEnd = existingWall.x + existingWall.length;
+            var newEnd = x + length;
+            if (x < existingEnd && newEnd > existingWall.x) {
+              overlaps = true;
+              break;
+            }
+          }
+        } else {
+          if (existingWall.x === x) {
+            // Check y range overlap
+            var existingEnd = existingWall.y + existingWall.length;
+            var newEnd = y + length;
+            if (y < existingEnd && newEnd > existingWall.y) {
+              overlaps = true;
+              break;
+            }
+          }
+        }
+      }
+    }
+
+    if (!overlaps) {
+      this.walls.push({
+        isHorizontal: isHorizontal,
+        x: x,
+        y: y,
+        length: length
+      });
+    }
+  }
 };
 
 // Set up the initial tiles to start the game with
@@ -77,8 +154,8 @@ GameManager.prototype.addRandomTile = function () {
 
 // Sends the updated grid to the actuator
 GameManager.prototype.actuate = function () {
-  if (this.storageManager.getBestScore() < this.score) {
-    this.storageManager.setBestScore(this.score);
+  if (this.storageManager.getBestScore(this.mode) < this.score) {
+    this.storageManager.setBestScore(this.score, this.mode);
   }
 
   // Clear the state when the game is over (game over only, not win)
@@ -92,8 +169,10 @@ GameManager.prototype.actuate = function () {
     score:      this.score,
     over:       this.over,
     won:        this.won,
-    bestScore:  this.storageManager.getBestScore(),
-    terminated: this.isGameTerminated()
+    bestScore:  this.storageManager.getBestScore(this.mode),
+    terminated: this.isGameTerminated(),
+    mode:       this.mode,
+    walls:      this.walls
   });
 
 };
@@ -105,7 +184,9 @@ GameManager.prototype.serialize = function () {
     score:       this.score,
     over:        this.over,
     won:         this.won,
-    keepPlaying: this.keepPlaying
+    keepPlaying: this.keepPlaying,
+    mode:        this.mode,
+    walls:       this.walls
   };
 };
 
@@ -153,7 +234,7 @@ GameManager.prototype.move = function (direction) {
         var next      = self.grid.cellContent(positions.next);
 
         // Only one merger per row traversal?
-        if (next && next.value === tile.value && !next.mergedFrom) {
+        if (next && next.value === tile.value && !next.mergedFrom && !this.isWallBetween(cell, positions.next)) {
           var merged = new Tile(positions.next, tile.value * 2);
           merged.mergedFrom = [tile, next];
 
@@ -227,12 +308,48 @@ GameManager.prototype.findFarthestPosition = function (cell, vector) {
     previous = cell;
     cell     = { x: previous.x + vector.x, y: previous.y + vector.y };
   } while (this.grid.withinBounds(cell) &&
-           this.grid.cellAvailable(cell));
+           this.grid.cellAvailable(cell) &&
+           !this.isWallBetween(previous, cell));
 
   return {
     farthest: previous,
     next: cell // Used to check if a merge is required
   };
+};
+
+// Check if there's a wall between two adjacent cells
+GameManager.prototype.isWallBetween = function (cell1, cell2) {
+  if (this.mode !== 'maze') return false;
+
+  var x1 = Math.min(cell1.x, cell2.x);
+  var y1 = Math.min(cell1.y, cell2.y);
+  var x2 = Math.max(cell1.x, cell2.x);
+  var y2 = Math.max(cell1.y, cell2.y);
+
+  // Check if cells are adjacent
+  if ((x2 - x1) + (y2 - y1) !== 1) return false;
+
+  var isHorizontalWall = (y2 - y1 === 1);
+
+  for (var i = 0; i < this.walls.length; i++) {
+    var wall = this.walls[i];
+
+    if (wall.isHorizontal === isHorizontalWall) {
+      if (isHorizontalWall) {
+        // Horizontal wall between y and y+1
+        if (wall.y === y1 && x1 >= wall.x && x1 < wall.x + wall.length) {
+          return true;
+        }
+      } else {
+        // Vertical wall between x and x+1
+        if (wall.x === x1 && y1 >= wall.y && y1 < wall.y + wall.length) {
+          return true;
+        }
+      }
+    }
+  }
+
+  return false;
 };
 
 GameManager.prototype.movesAvailable = function () {
@@ -256,7 +373,7 @@ GameManager.prototype.tileMatchesAvailable = function () {
 
           var other  = self.grid.cellContent(cell);
 
-          if (other && other.value === tile.value) {
+          if (other && other.value === tile.value && !this.isWallBetween({x: x, y: y}, cell)) {
             return true; // These two tiles can be merged
           }
         }

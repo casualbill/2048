@@ -1,10 +1,13 @@
 function HTMLActuator() {
   this.tileContainer    = document.querySelector(".tile-container");
+  this.wallContainer    = document.querySelector(".wall-container");
   this.scoreContainer   = document.querySelector(".score-container");
   this.bestContainer    = document.querySelector(".best-container");
   this.messageContainer = document.querySelector(".game-message");
+  this.modeContainer    = document.querySelector(".mode-container");
 
   this.score = 0;
+  this.currentMode = 'classic';
 }
 
 HTMLActuator.prototype.actuate = function (grid, metadata) {
@@ -20,6 +23,16 @@ HTMLActuator.prototype.actuate = function (grid, metadata) {
         }
       });
     });
+
+    // Update mode display
+    self.updateMode(metadata.mode);
+
+    // Draw walls if in maze mode
+    if (metadata.mode === 'maze') {
+      self.drawWalls(grid.size, metadata.walls);
+    } else {
+      self.clearContainer(self.wallContainer);
+    }
 
     self.updateScore(metadata.score);
     self.updateBestScore(metadata.bestScore);
@@ -38,6 +51,50 @@ HTMLActuator.prototype.actuate = function (grid, metadata) {
 // Continues the game (both restart and keep playing)
 HTMLActuator.prototype.continueGame = function () {
   this.clearMessage();
+};
+
+// Update mode display
+HTMLActuator.prototype.updateMode = function (mode) {
+  if (mode !== this.currentMode) {
+    this.currentMode = mode;
+    // Update mode display in the UI
+    if (this.modeContainer) {
+      this.modeContainer.textContent = mode === 'maze' ? '迷宫模式' : '经典模式';
+    }
+  }
+};
+
+// Draw walls on the board
+HTMLActuator.prototype.drawWalls = function (size, walls) {
+  this.clearContainer(this.wallContainer);
+  
+  var cellSize = 107; // Size of each cell in pixels (matches CSS)
+  var cellSpacing = 14; // Spacing between cells (121px - 107px)
+  var wallThickness = 12; // Thickness of walls
+  
+  walls.forEach(function (wall) {
+    var wallElement = document.createElement('div');
+    var x = wall.x * (cellSize + cellSpacing);
+    var y = wall.y * (cellSize + cellSpacing);
+    
+    if (wall.isHorizontal) {
+      // Horizontal wall: between rows y and y+1
+      wallElement.classList.add('wall', 'wall-horizontal');
+      wallElement.style.width = (wall.length * (cellSize + cellSpacing) - cellSpacing) + 'px';
+      wallElement.style.height = wallThickness + 'px';
+      wallElement.style.left = x + 'px';
+      wallElement.style.top = (y + cellSize + (cellSpacing - wallThickness) / 2) + 'px';
+    } else {
+      // Vertical wall: between columns x and x+1
+      wallElement.classList.add('wall', 'wall-vertical');
+      wallElement.style.width = wallThickness + 'px';
+      wallElement.style.height = (wall.length * (cellSize + cellSpacing) - cellSpacing) + 'px';
+      wallElement.style.left = (x + cellSize + (cellSpacing - wallThickness) / 2) + 'px';
+      wallElement.style.top = y + 'px';
+    }
+    
+    this.wallContainer.appendChild(wallElement);
+  }, this);
 };
 
 HTMLActuator.prototype.clearContainer = function (container) {

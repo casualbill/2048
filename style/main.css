@@ -95,6 +95,42 @@ h1.title {
 .best-container:after {
   content: "Best"; }
 
+.mode-container {
+  margin-top: 10px;
+  font-size: 20px;
+  font-weight: bold;
+  text-align: center;
+  margin-bottom: 5px;
+}
+
+.mode-selector {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 10px;
+}
+
+.mode-button {
+  display: inline-block;
+  background: #8f7a66;
+  border-radius: 3px;
+  padding: 0 15px;
+  text-decoration: none;
+  color: #f9f6f2;
+  height: 40px;
+  line-height: 40px;
+  margin: 0 5px;
+  cursor: pointer;
+  font-size: 16px;
+  text-align: center;
+  min-width: 80px;
+  box-sizing: border-box;
+}
+
+.mode-button.active {
+  background: #bbada0;
+  color: white;
+}
+
 p {
   margin-top: 0;
   margin-bottom: 10px;
@@ -226,7 +262,28 @@ hr {
 
 .tile-container {
   position: absolute;
-  z-index: 2; }
+  z-index: 2;
+}
+
+.wall-container {
+  position: absolute;
+  z-index: 1;
+}
+
+.wall {
+  position: absolute;
+  background: #776e65;
+  border-radius: 3px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.wall-horizontal {
+  /* Horizontal wall styling */
+}
+
+.wall-vertical {
+  /* Vertical wall styling */
+}
 
 .tile, .tile .tile-inner {
   width: 107px;
