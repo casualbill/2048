@@ -61,3 +61,17 @@ LocalStorageManager.prototype.setGameState = function (gameState) {
 LocalStorageManager.prototype.clearGameState = function () {
   this.storage.removeItem(this.gameStateKey);
 };
+
+// Achievements getters/setters and clearing
+LocalStorageManager.prototype.getAchievements = function () {
+  var achievementsJSON = this.storage.getItem("achievements");
+  return achievementsJSON ? JSON.parse(achievementsJSON) : [];
+};
+
+LocalStorageManager.prototype.setAchievements = function (achievements) {
+  this.storage.setItem("achievements", JSON.stringify(achievements));
+};
+
+LocalStorageManager.prototype.clearAchievements = function () {
+  this.storage.removeItem("achievements");
+};
