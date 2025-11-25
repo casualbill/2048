@@ -15,6 +15,11 @@ function GameManager(size, InputManager, Actuator, StorageManager) {
 
 // Restart the game
 GameManager.prototype.restart = function () {
+  // Add current score to cumulative total
+  if (this.score > 0) {
+    var currentCumulative = parseInt(this.storageManager.getCumulativeTotalScore());
+    this.storageManager.setCumulativeTotalScore(currentCumulative + this.score);
+  }
   this.storageManager.clearGameState();
   this.actuator.continueGame(); // Clear the game won/lost message
   this.setup();
@@ -250,10 +255,13 @@ GameManager.prototype.move = function (direction) {
     this.checkNoLeakAchievement();
 
     // Check if game over
-    if (!this.movesAvailable()) {
-      this.over = true; // Game over!
-      this.checkGameOverAchievement();
-    }
+        if (!this.movesAvailable()) {
+          this.over = true; // Game over!
+          // Add current score to cumulative total
+          var currentCumulative = parseInt(this.storageManager.getCumulativeTotalScore());
+          this.storageManager.setCumulativeTotalScore(currentCumulative + this.score);
+          this.checkGameOverAchievement();
+        }
 
     // Update achievements storage
     this.storageManager.setAchievements(this.achievements);
@@ -364,11 +372,12 @@ GameManager.prototype.updateCumulativeAchievements = function () {
   }
 
   // 巨额财富: 累计游戏总得分达到1000000分
-  var totalScore = parseInt(this.storageManager.getBestScore()) + this.score;
-  this.achievements.巨额财富.progress = totalScore;
-  if (!this.achievements.巨额财富.unlocked && totalScore >= this.achievements.巨额财富.max) {
-    this.achievements.巨额财富.unlocked = true;
-  }
+    var cumulativeTotal = parseInt(this.storageManager.getCumulativeTotalScore());
+    // Add current game's score to cumulative total for progress display
+    this.achievements.巨额财富.progress = cumulativeTotal + this.score;
+    if (!this.achievements.巨额财富.unlocked && (cumulativeTotal + this.score) >= this.achievements.巨额财富.max) {
+      this.achievements.巨额财富.unlocked = true;
+    }
 };
 
 // Check milestone achievements (数字里程碑)

@@ -20,6 +20,7 @@ window.fakeStorage = {
 
 function LocalStorageManager() {
   this.bestScoreKey     = "bestScore";
+  this.cumulativeTotalScoreKey = "cumulativeTotalScore";
   this.gameStateKey     = "gameState";
   this.achievementsKey  = "achievements";
 
@@ -47,6 +48,15 @@ LocalStorageManager.prototype.getBestScore = function () {
 
 LocalStorageManager.prototype.setBestScore = function (score) {
   this.storage.setItem(this.bestScoreKey, score);
+};
+
+// Cumulative total score getters/setters
+LocalStorageManager.prototype.getCumulativeTotalScore = function () {
+  return this.storage.getItem(this.cumulativeTotalScoreKey) || 0;
+};
+
+LocalStorageManager.prototype.setCumulativeTotalScore = function (score) {
+  this.storage.setItem(this.cumulativeTotalScoreKey, score);
 };
 
 // Game state getters/setters and clearing
