@@ -32,6 +32,7 @@ KeyboardInputManager.prototype.emit = function (event, data) {
 };
 
 KeyboardInputManager.prototype.listen = function () {
+  console.log('KeyboardInputManager.listen called');
   var self = this;
 
   var map = {
