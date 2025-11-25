@@ -40,12 +40,14 @@ LocalStorageManager.prototype.localStorageSupported = function () {
 };
 
 // Best score getters/setters
-LocalStorageManager.prototype.getBestScore = function () {
-  return this.storage.getItem(this.bestScoreKey) || 0;
+LocalStorageManager.prototype.getBestScore = function (shape = 'square') {
+  const key = `${this.bestScoreKey}_${shape}`;
+  return this.storage.getItem(key) || 0;
 };
 
-LocalStorageManager.prototype.setBestScore = function (score) {
-  this.storage.setItem(this.bestScoreKey, score);
+LocalStorageManager.prototype.setBestScore = function (score, shape = 'square') {
+  const key = `${this.bestScoreKey}_${shape}`;
+  this.storage.setItem(key, score);
 };
 
 // Game state getters/setters and clearing
