@@ -72,6 +72,23 @@ KeyboardInputManager.prototype.listen = function () {
   this.bindButtonPress(".retry-button", this.restart);
   this.bindButtonPress(".restart-button", this.restart);
   this.bindButtonPress(".keep-playing-button", this.keepPlaying);
+  
+  // Respond to mode selection
+  var modeButtons = document.querySelectorAll('.mode-button');
+  for (var i = 0; i < modeButtons.length; i++) {
+    modeButtons[i].addEventListener('click', function(event) {
+      event.preventDefault();
+      var mode = this.getAttribute('data-mode');
+      self.emit('modeChange', mode);
+      
+      // Update active state
+      var allModeButtons = document.querySelectorAll('.mode-button');
+      for (var j = 0; j < allModeButtons.length; j++) {
+        allModeButtons[j].classList.remove('active');
+      }
+      this.classList.add('active');
+    });
+  }
 
   // Respond to swipe events
   var touchStartClientX, touchStartClientY;
