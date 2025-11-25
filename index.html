@@ -28,9 +28,17 @@
 
     <div class="above-game">
       <p class="game-intro">Join the numbers and get to the <strong>2048 tile!</strong></p>
-      <a class="restart-button">New Game</a>
+      <div style="display: flex; align-items: center; gap: 10px;">
+        <select id="game-mode" class="game-mode-selector">
+          <option value="normal">普通模式</option>
+          <option value="event">事件模式</option>
+          <option value="doom">厄运模式</option>
+        </select>
+        <a class="restart-button">New Game</a>
+      </div>
     </div>
 
+    <div class="event-message-container"></div>
     <div class="game-container">
       <div class="game-message">
         <p></p>
