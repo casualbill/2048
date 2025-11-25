@@ -1,5 +1,6 @@
 function HTMLActuator() {
   this.tileContainer    = document.querySelector(".tile-container");
+  this.gridContainer    = document.querySelector(".grid-container");
   this.scoreContainer   = document.querySelector(".score-container");
   this.bestContainer    = document.querySelector(".best-container");
   this.messageContainer = document.querySelector(".game-message");
@@ -21,6 +22,16 @@ HTMLActuator.prototype.actuate = function (grid, metadata) {
       });
     });
 
+    // Render black hole
+    // Remove existing black hole
+    const existingBlackHole = document.querySelector('.grid-cell-black-hole');
+    if (existingBlackHole && existingBlackHole.parentNode) {
+      existingBlackHole.parentNode.replaceChild(document.createElement('div'), existingBlackHole);
+    }
+    if (metadata.blackHoleActive && metadata.blackHolePosition) {
+      self.renderBlackHole(metadata.blackHolePosition);
+    }
+
     self.updateScore(metadata.score);
     self.updateBestScore(metadata.bestScore);
 
@@ -33,6 +44,33 @@ HTMLActuator.prototype.actuate = function (grid, metadata) {
     }
 
   });
+};
+
+HTMLActuator.prototype.renderBlackHole = function (position) {
+  // Remove existing black hole
+  var existingBlackHole = document.querySelector(".grid-cell-black-hole");
+  if (existingBlackHole) {
+    existingBlackHole.remove();
+  }
+  
+  // Create new black hole
+  var blackHole = document.createElement("div");
+  blackHole.classList.add("grid-cell");
+  blackHole.classList.add("grid-cell-black-hole");
+  
+  // Find the correct grid row and cell to replace
+  var gridRows = document.querySelectorAll(".grid-row");
+  var targetRow = gridRows[position.y];
+  if (!targetRow) return;
+  
+  var targetCell = targetRow.querySelectorAll(".grid-cell")[position.x];
+  if (!targetCell) return;
+  
+  // Ensure blackHole is a valid DOM node
+  if (!(blackHole instanceof Node)) return;
+  
+  // Replace the target cell with the black hole
+  targetRow.replaceChild(blackHole, targetCell);
 };
 
 // Continues the game (both restart and keep playing)
@@ -58,11 +96,26 @@ HTMLActuator.prototype.addTile = function (tile) {
   var classes = ["tile", "tile-" + tile.value, positionClass];
 
   if (tile.value > 2048) classes.push("tile-super");
+  if (tile.frozen) classes.push("tile-frozen");
 
   this.applyClasses(wrapper, classes);
 
   inner.classList.add("tile-inner");
   inner.textContent = tile.value;
+
+  if (tile.frozen) {
+    // Add ice layer
+    var iceLayer = document.createElement("div");
+    iceLayer.classList.add("tile-ice-layer");
+    
+    // Add countdown number
+    var countdown = document.createElement("div");
+    countdown.classList.add("tile-countdown");
+    countdown.textContent = tile.freezeCountdown;
+    iceLayer.appendChild(countdown);
+    
+    wrapper.appendChild(iceLayer);
+  }
 
   if (tile.previousPosition) {
     // Make sure that the tile gets rendered in the previous position first
