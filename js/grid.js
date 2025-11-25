@@ -8,10 +8,12 @@ Grid.prototype.empty = function () {
   var cells = [];
 
   for (var x = 0; x < this.size; x++) {
-    var row = cells[x] = [];
-
+    var column = cells[x] = [];
     for (var y = 0; y < this.size; y++) {
-      row.push(null);
+      var row = column[y] = [];
+      for (var z = 0; z < this.size; z++) {
+        row.push(null);
+      }
     }
   }
 
@@ -22,11 +24,13 @@ Grid.prototype.fromState = function (state) {
   var cells = [];
 
   for (var x = 0; x < this.size; x++) {
-    var row = cells[x] = [];
-
+    var column = cells[x] = [];
     for (var y = 0; y < this.size; y++) {
-      var tile = state[x][y];
-      row.push(tile ? new Tile(tile.position, tile.value) : null);
+      var row = column[y] = [];
+      for (var z = 0; z < this.size; z++) {
+    var tile = state[x] && state[x][y] ? state[x][y][z] : null;
+    row.push(tile ? new Tile(tile.position, tile.value) : null);
+  }
     }
   }
 
@@ -45,9 +49,9 @@ Grid.prototype.randomAvailableCell = function () {
 Grid.prototype.availableCells = function () {
   var cells = [];
 
-  this.eachCell(function (x, y, tile) {
+  this.eachCell(function (x, y, z, tile) {
     if (!tile) {
-      cells.push({ x: x, y: y });
+      cells.push({ x: x, y: y, z: z });
     }
   });
 
@@ -58,7 +62,9 @@ Grid.prototype.availableCells = function () {
 Grid.prototype.eachCell = function (callback) {
   for (var x = 0; x < this.size; x++) {
     for (var y = 0; y < this.size; y++) {
-      callback(x, y, this.cells[x][y]);
+      for (var z = 0; z < this.size; z++) {
+        callback(x, y, z, this.cells[x][y][z]);
+      }
     }
   }
 };
@@ -79,7 +85,7 @@ Grid.prototype.cellOccupied = function (cell) {
 
 Grid.prototype.cellContent = function (cell) {
   if (this.withinBounds(cell)) {
-    return this.cells[cell.x][cell.y];
+    return this.cells[cell.x][cell.y][cell.z];
   } else {
     return null;
   }
@@ -87,26 +93,29 @@ Grid.prototype.cellContent = function (cell) {
 
 // Inserts a tile at its position
 Grid.prototype.insertTile = function (tile) {
-  this.cells[tile.x][tile.y] = tile;
+  this.cells[tile.x][tile.y][tile.z] = tile;
 };
 
 Grid.prototype.removeTile = function (tile) {
-  this.cells[tile.x][tile.y] = null;
+  this.cells[tile.x][tile.y][tile.z] = null;
 };
 
 Grid.prototype.withinBounds = function (position) {
   return position.x >= 0 && position.x < this.size &&
-         position.y >= 0 && position.y < this.size;
+         position.y >= 0 && position.y < this.size &&
+         position.z >= 0 && position.z < this.size;
 };
 
 Grid.prototype.serialize = function () {
   var cellState = [];
 
   for (var x = 0; x < this.size; x++) {
-    var row = cellState[x] = [];
-
+    var column = cellState[x] = [];
     for (var y = 0; y < this.size; y++) {
-      row.push(this.cells[x][y] ? this.cells[x][y].serialize() : null);
+      var row = column[y] = [];
+      for (var z = 0; z < this.size; z++) {
+        row.push(this.cells[x][y][z] ? this.cells[x][y][z].serialize() : null);
+      }
     }
   }
 
