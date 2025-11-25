@@ -90,6 +90,29 @@ Grid.prototype.insertTile = function (tile) {
   this.cells[tile.x][tile.y] = tile;
 };
 
+// Get adjacent empty cells to a given position
+Grid.prototype.getAdjacentEmptyCells = function (x, y) {
+  var emptyCells = [];
+  
+  // Check all four directions
+  var directions = [
+    {x: x-1, y: y}, // Left
+    {x: x+1, y: y}, // Right
+    {x: x, y: y-1}, // Up
+    {x: x, y: y+1}  // Down
+  ];
+  
+  // Check each direction for available cells
+  var self = this;
+  directions.forEach(function(dir) {
+    if (self.withinBounds(dir) && self.cellAvailable(dir)) {
+      emptyCells.push(dir);
+    }
+  });
+  
+  return emptyCells;
+};
+
 Grid.prototype.removeTile = function (tile) {
   this.cells[tile.x][tile.y] = null;
 };

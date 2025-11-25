@@ -1,7 +1,9 @@
-function Tile(position, value) {
+function Tile(position, value, isBomb) {
   this.x                = position.x;
   this.y                = position.y;
   this.value            = value || 2;
+  this.isBomb           = isBomb || false;
+  this.bombTimer        = null; // Only used for bombs
 
   this.previousPosition = null;
   this.mergedFrom       = null; // Tracks tiles that merged together

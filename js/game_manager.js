@@ -33,6 +33,14 @@ GameManager.prototype.isGameTerminated = function () {
 
 // Set up the game
 GameManager.prototype.setup = function () {
+  // Clear any existing intervals
+  if (this.countdownInterval) {
+    clearInterval(this.countdownInterval);
+  }
+  if (this.bombInterval) {
+    clearInterval(this.bombInterval);
+  }
+  
   var previousState = this.storageManager.getGameState();
 
   // Reload the game from a previous game if present
@@ -54,8 +62,29 @@ GameManager.prototype.setup = function () {
     this.addStartTiles();
   }
 
+  // Initialize countdown timer variables
+  this.countdownActive = false;
+  this.countdownTime = 5;
+  this.countdownInterval = null;
+  this.lastMergeTime = Date.now();
+
+  // Initialize bomb variables
+  this.bombCount = 0;
+  this.bombInterval = null;
+  this.lastBombTime = Date.now();
+
   // Update the actuator
   this.actuate();
+
+  // Start the bomb generation interval
+  var self = this;
+  this.bombInterval = setInterval(function() {
+    // Generate a bomb every 10 seconds
+    if (Date.now() - self.lastBombTime >= 10000) {
+      self.addBomb();
+      self.lastBombTime = Date.now();
+    }
+  }, 1000);
 };
 
 // Set up the initial tiles to start the game with
@@ -73,6 +102,76 @@ GameManager.prototype.addRandomTile = function () {
 
     this.grid.insertTile(tile);
   }
+};
+
+// Adds a bomb in a random position
+GameManager.prototype.addBomb = function () {
+  if (this.bombCount >= 2 || !this.grid.cellsAvailable()) return;
+  
+  var self = this;
+  var cell = this.grid.randomAvailableCell();
+  var bombTile = new Tile(cell, 1024, true);
+  
+  this.grid.insertTile(bombTile);
+  this.bombCount++;
+  
+  // Start the bomb timer
+  bombTile.bombTimer = setInterval(function() {
+    // Decrease bomb value by half every 5 seconds
+    bombTile.value /= 2;
+    
+    // Check if bomb is about to explode
+    if (bombTile.value <= 2) {
+      clearInterval(bombTile.bombTimer);
+      self.explodeBomb(bombTile);
+      return;
+    }
+    
+    // Only update the bomb tile's value, not the entire board
+    // To do this, we need to re-render just the bomb tile
+    self.actuate(); // Update the UI (this is still necessary to show the bomb value change)
+  }, 5000);
+};
+
+// Handles bomb explosion
+GameManager.prototype.explodeBomb = function (bombTile) {
+  // Remove the bomb from the grid
+  this.grid.removeTile(bombTile);
+  this.bombCount--;
+  
+  // Split all tiles with value >= 4 into two tiles with half the value
+  var self = this;
+  var newTiles = [];
+  
+  this.grid.eachCell(function(x, y, tile) {
+    if (tile && tile.value >= 4 && !tile.isBomb) {
+      // Remove the original tile
+      self.grid.removeTile(tile);
+      
+      // Create two new tiles with half the value
+      var halfValue = tile.value / 2;
+      var positions = self.grid.getAdjacentEmptyCells(tile.x, tile.y);
+      
+      // Place the first tile in the original position
+      var firstTile = new Tile({x: tile.x, y: tile.y}, halfValue);
+      newTiles.push(firstTile);
+      
+      // Place the second tile in an adjacent empty cell if available
+      if (positions.length > 0) {
+        var randomPosition = positions[Math.floor(Math.random() * positions.length)];
+        var secondTile = new Tile(randomPosition, halfValue);
+        newTiles.push(secondTile);
+      }
+    }
+  });
+  
+  // Insert all new tiles into the grid
+  newTiles.forEach(function(tile) {
+    self.grid.insertTile(tile);
+  });
+  
+  // Update the UI
+  this.actuate();
 };
 
 // Sends the updated grid to the actuator
@@ -93,7 +192,9 @@ GameManager.prototype.actuate = function () {
     over:       this.over,
     won:        this.won,
     bestScore:  this.storageManager.getBestScore(),
-    terminated: this.isGameTerminated()
+    terminated: this.isGameTerminated(),
+    countdownActive: this.countdownActive,
+    countdownTime: this.countdownTime
   });
 
 };
@@ -138,6 +239,7 @@ GameManager.prototype.move = function (direction) {
   var vector     = this.getVector(direction);
   var traversals = this.buildTraversals(vector);
   var moved      = false;
+  var merged     = false;
 
   // Save the current tile positions and remove merger information
   this.prepareTiles();
@@ -153,21 +255,36 @@ GameManager.prototype.move = function (direction) {
         var next      = self.grid.cellContent(positions.next);
 
         // Only one merger per row traversal?
-        if (next && next.value === tile.value && !next.mergedFrom) {
-          var merged = new Tile(positions.next, tile.value * 2);
-          merged.mergedFrom = [tile, next];
+        if (next && !tile.isBomb && !next.isBomb && next.value === tile.value && !next.mergedFrom) {
+          var mergedTile = new Tile(positions.next, tile.value * 2);
+          mergedTile.mergedFrom = [tile, next];
 
-          self.grid.insertTile(merged);
+          self.grid.insertTile(mergedTile);
           self.grid.removeTile(tile);
 
           // Converge the two tiles' positions
           tile.updatePosition(positions.next);
 
           // Update the score
-          self.score += merged.value;
+          self.score += mergedTile.value;
 
           // The mighty 2048 tile
-          if (merged.value === 2048) self.won = true;
+          if (mergedTile.value === 2048) self.won = true;
+          merged = true;
+        } else if (next && tile.isBomb && next.value === tile.value) {
+          // Player used a tile to defuse the bomb
+          self.defuseBomb(tile);
+          self.grid.removeTile(tile);
+          self.grid.removeTile(next);
+          self.bombCount--;
+          merged = true;
+        } else if (next && next.isBomb && tile.value === next.value) {
+          // Player used a tile to defuse the bomb
+          self.defuseBomb(next);
+          self.grid.removeTile(tile);
+          self.grid.removeTile(next);
+          self.bombCount--;
+          merged = true;
         } else {
           self.moveTile(tile, positions.farthest);
         }
@@ -180,6 +297,15 @@ GameManager.prototype.move = function (direction) {
   });
 
   if (moved) {
+    // Start countdown timer with 20% probability if merged
+    if (merged) {
+      if (Math.random() < 0.2) {
+        this.startCountdown();
+      } else {
+        this.resetCountdown();
+      }
+    }
+
     this.addRandomTile();
 
     if (!this.movesAvailable()) {
@@ -188,6 +314,86 @@ GameManager.prototype.move = function (direction) {
 
     this.actuate();
   }
+};
+
+// Starts the countdown timer
+GameManager.prototype.startCountdown = function () {
+  var self = this;
+  
+  if (this.countdownInterval) {
+    clearInterval(this.countdownInterval);
+  }
+  
+  this.countdownActive = true;
+  this.countdownTime = 5;
+  this.actuator.updateCountdown(this.countdownActive, this.countdownTime);
+  
+  this.countdownInterval = setInterval(function() {
+    self.countdownTime--;
+    
+    if (self.countdownTime <= 0) {
+      clearInterval(self.countdownInterval);
+      self.splitAllTiles();
+      self.countdownActive = false;
+    }
+    
+    // Only update the countdown text, not the entire board
+    self.actuator.updateCountdown(self.countdownActive, self.countdownTime);
+  }, 1000);
+};
+
+// Resets the countdown timer
+GameManager.prototype.resetCountdown = function () {
+  if (this.countdownInterval) {
+    clearInterval(this.countdownInterval);
+  }
+  
+  this.countdownActive = false;
+  this.countdownTime = 5;
+  this.actuate();
+};
+
+// Splits all tiles with value >= 4 into two tiles with half the value
+GameManager.prototype.splitAllTiles = function () {
+  var self = this;
+  var newTiles = [];
+  
+  this.grid.eachCell(function(x, y, tile) {
+    if (tile && tile.value >= 4 && !tile.isBomb) {
+      // Remove the original tile
+      self.grid.removeTile(tile);
+      
+      // Create two new tiles with half the value
+      var halfValue = tile.value / 2;
+      var positions = self.grid.getAdjacentEmptyCells(tile.x, tile.y);
+      
+      // Place the first tile in the original position
+      var firstTile = new Tile({x: tile.x, y: tile.y}, halfValue);
+      newTiles.push(firstTile);
+      
+      // Place the second tile in an adjacent empty cell if available
+      if (positions.length > 0) {
+        var randomPosition = positions[Math.floor(Math.random() * positions.length)];
+        var secondTile = new Tile(randomPosition, halfValue);
+        newTiles.push(secondTile);
+      }
+    }
+  });
+  
+  // Insert all new tiles into the grid
+  newTiles.forEach(function(tile) {
+    self.grid.insertTile(tile);
+  });
+  
+  // Update the UI
+  this.actuate();
+};
+
+// Defuses a bomb and gives the player points
+GameManager.prototype.defuseBomb = function (bombTile) {
+  clearInterval(bombTile.bombTimer);
+  this.score += bombTile.value * 2;
+  this.actuate();
 };
 
 // Get the vector representing the chosen direction

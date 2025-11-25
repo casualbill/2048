@@ -3,9 +3,18 @@ function HTMLActuator() {
   this.scoreContainer   = document.querySelector(".score-container");
   this.bestContainer    = document.querySelector(".best-container");
   this.messageContainer = document.querySelector(".game-message");
+  this.countdownContainer = document.getElementById("countdown-container") || this.createCountdownContainer();
 
   this.score = 0;
 }
+
+HTMLActuator.prototype.createCountdownContainer = function() {
+  var container = document.createElement("div");
+  container.id = "countdown-container";
+  container.classList.add("countdown-container");
+  document.body.insertBefore(container, document.body.firstChild);
+  return container;
+};
 
 HTMLActuator.prototype.actuate = function (grid, metadata) {
   var self = this;
@@ -23,6 +32,7 @@ HTMLActuator.prototype.actuate = function (grid, metadata) {
 
     self.updateScore(metadata.score);
     self.updateBestScore(metadata.bestScore);
+    self.updateCountdown(metadata.countdownActive, metadata.countdownTime);
 
     if (metadata.terminated) {
       if (metadata.over) {
@@ -33,6 +43,15 @@ HTMLActuator.prototype.actuate = function (grid, metadata) {
     }
 
   });
+};
+
+HTMLActuator.prototype.updateCountdown = function (active, time) {
+  if (active) {
+    this.countdownContainer.textContent = "Time to merge: " + time + "s";
+    this.countdownContainer.style.display = "block";
+  } else {
+    this.countdownContainer.style.display = "none";
+  }
 };
 
 // Continues the game (both restart and keep playing)

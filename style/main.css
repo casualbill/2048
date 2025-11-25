@@ -2,10 +2,24 @@
 html, body {
   margin: 0;
   padding: 0;
+  
   background: #faf8ef;
   color: #776e65;
   font-family: "Clear Sans", "Helvetica Neue", Arial, sans-serif;
-  font-size: 18px; }
+  font-size: 18px;
+}
+
+.countdown-container {
+  text-align: center;
+  font-size: 24px;
+  font-weight: bold;
+  margin: 10px 0;
+  padding: 10px;
+  background: #bbada0;
+  color: white;
+  border-radius: 5px;
+  display: none;
+}
 
 body {
   margin: 80px 0; }
