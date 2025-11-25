@@ -5,6 +5,7 @@ function Tile(position, value) {
 
   this.previousPosition = null;
   this.mergedFrom       = null; // Tracks tiles that merged together
+  this.timer            = null; // For timer bomb prop
 }
 
 Tile.prototype.savePosition = function () {
@@ -22,6 +23,7 @@ Tile.prototype.serialize = function () {
       x: this.x,
       y: this.y
     },
-    value: this.value
+    value: this.value,
+    timer: this.timer
   };
 };

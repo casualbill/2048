@@ -20,13 +20,53 @@ Grid.prototype.empty = function () {
 
 Grid.prototype.fromState = function (state) {
   var cells = [];
+  var stateCells = state.cells || state;
 
   for (var x = 0; x < this.size; x++) {
     var row = cells[x] = [];
 
     for (var y = 0; y < this.size; y++) {
-      var tile = state[x][y];
-      row.push(tile ? new Tile(tile.position, tile.value) : null);
+      var tile = stateCells[x][y];
+      if (tile) {
+        // Log the tile object to debug
+        console.log('Tile object:', tile);
+        var position = null;
+        
+        // Check if tile has position with valid x and y
+        if (tile.position) {
+          if (typeof tile.position.x === 'number' && typeof tile.position.y === 'number') {
+            position = tile.position;
+          } else {
+            console.log('Invalid position in tile:', tile.position);
+          }
+        }
+        
+        // If no valid position from tile.position, check tile.x and tile.y
+        if (!position) {
+          if (typeof tile.x === 'number' && typeof tile.y === 'number') {
+            position = { x: tile.x, y: tile.y };
+          } else {
+            console.log('No valid position in tile (neither position nor x/y):', tile);
+          }
+        }
+        
+        // If we have a valid position, create Tile; else push null
+        if (position && typeof position === 'object' && typeof position.x === 'number' && typeof position.y === 'number') {
+          try {
+            row.push(new Tile(position, tile.value));
+          } catch (e) {
+            console.log('Error creating Tile:', e);
+            console.log('Position:', position);
+            console.log('Tile:', tile);
+            row.push(null);
+          }
+        } else {
+          console.log('Skipping tile due to invalid position:', tile);
+          row.push(null);
+        }
+      } else {
+        row.push(null);
+      }
     }
   }
 
@@ -110,8 +150,31 @@ Grid.prototype.serialize = function () {
     }
   }
 
-  return {
-    size: this.size,
-    cells: cellState
-  };
+  return cellState;
+};
+
+// Check if any tiles have been merged
+Grid.prototype.tilesMerged = function () {
+  var merged = false;
+
+  this.eachCell(function (x, y, tile) {
+    if (tile && tile.mergedFrom) {
+      merged = true;
+    }
+  });
+
+  return merged;
+};
+
+// Find the highest tile value
+Grid.prototype.highestValue = function () {
+  var highest = 0;
+
+  this.eachCell(function (x, y, tile) {
+    if (tile && tile.value > highest) {
+      highest = tile.value;
+    }
+  });
+
+  return highest;
 };

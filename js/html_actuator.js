@@ -3,6 +3,7 @@ function HTMLActuator() {
   this.scoreContainer   = document.querySelector(".score-container");
   this.bestContainer    = document.querySelector(".best-container");
   this.messageContainer = document.querySelector(".game-message");
+  this.propsContainer   = document.querySelector(".props-container");
 
   this.score = 0;
 }
@@ -23,6 +24,7 @@ HTMLActuator.prototype.actuate = function (grid, metadata) {
 
     self.updateScore(metadata.score);
     self.updateBestScore(metadata.bestScore);
+    self.updateProps(metadata.props);
 
     if (metadata.terminated) {
       if (metadata.over) {
@@ -98,6 +100,47 @@ HTMLActuator.prototype.normalizePosition = function (position) {
   return { x: position.x + 1, y: position.y + 1 };
 };
 
+HTMLActuator.prototype.updateProps = function (props) {
+  for (const propName in props) {
+    const countElement = document.getElementById(`${propName}-count`);
+    const propElement = document.getElementById(propName);
+    if (countElement) {
+      countElement.textContent = props[propName];
+    }
+    if (propElement) {
+      if (props[propName] > 0) {
+        propElement.classList.remove('disabled');
+      } else {
+        propElement.classList.add('disabled');
+      }
+    }
+  }
+};
+
+HTMLActuator.prototype.showPropSelection = function (propName) {
+  // Add hover effect to tiles for prop selection
+  this.tileContainer.classList.add('prop-selection');
+  this.tileContainer.setAttribute('data-prop', propName);
+};
+
+HTMLActuator.prototype.hidePropSelection = function () {
+  this.tileContainer.classList.remove('prop-selection');
+  this.tileContainer.removeAttribute('data-prop');
+};
+
+HTMLActuator.prototype.showTimerBomb = function (tile) {
+  const tileElement = document.querySelector(`.tile[data-position="${tile.x},${tile.y}"]`);
+  if (tileElement) {
+    const timerElement = document.createElement('div');
+    timerElement.classList.add('timer-bomb');
+    timerElement.textContent = tile.timer;
+    tileElement.appendChild(timerElement);
+    
+    // Timer bomb animation
+    timerElement.style.animation = 'timer-blink 1s infinite';
+  }
+};
+
 HTMLActuator.prototype.positionClass = function (position) {
   position = this.normalizePosition(position);
   return "tile-position-" + position.x + "-" + position.y;
@@ -137,3 +180,62 @@ HTMLActuator.prototype.clearMessage = function () {
   this.messageContainer.classList.remove("game-won");
   this.messageContainer.classList.remove("game-over");
 };
+
+// Add CSS styles for animations
+HTMLActuator.prototype.addAnimationStyles = function () {
+  const style = document.createElement('style');
+  style.textContent = `
+    .timer-bomb {
+      position: absolute;
+      top: 5px;
+      right: 5px;
+      background: red;
+      color: white;
+      border-radius: 50%;
+      width: 20px;
+      height: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: bold;
+    }
+    @keyframes timer-blink {
+      0% { opacity: 1; }
+      50% { opacity: 0.5; }
+      100% { opacity: 1; }
+    }
+    .prop-selection .tile:hover {
+      box-shadow: 0 0 20px rgba(0, 255, 255, 0.7);
+      transform: scale(1.05);
+      transition: all 0.2s ease;
+    }
+    .swap-tile {
+      animation: shake 0.5s ease-in-out;
+    }
+    @keyframes shake {
+      0% { transform: translateX(0); }
+      25% { transform: translateX(-5px); }
+      75% { transform: translateX(5px); }
+      100% { transform: translateX(0); }
+    }
+    .clear-same-tile {
+      animation: flash 0.5s ease-in-out;
+    }
+    @keyframes flash {
+      0% { background-color: rgba(0, 255, 255, 0.3); }
+      50% { background-color: rgba(0, 255, 255, 0.8); }
+      100% { background-color: transparent; }
+    }
+  `;
+  document.head.appendChild(style);
+};
+
+// Initialize animation styles
+HTMLActuator.prototype.init = function () {
+  this.addAnimationStyles();
+};
+
+// Initialize the actuator
+var actuator = new HTMLActuator();
+actuator.init();

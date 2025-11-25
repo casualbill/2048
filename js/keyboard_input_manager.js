@@ -77,6 +77,58 @@ KeyboardInputManager.prototype.listen = function () {
   var touchStartClientX, touchStartClientY;
   var gameContainer = document.getElementsByClassName("game-container")[0];
 
+  // Respond to prop button clicks
+  var propButtons = document.querySelectorAll('.prop');
+  propButtons.forEach(function (button) {
+    button.addEventListener('click', function () {
+      var propName = button.id;
+      self.emit('propClick', propName);
+    });
+  });
+
+  // Respond to tile clicks for prop usage
+  var tileContainer = document.querySelector('.tile-container');
+  tileContainer.addEventListener('click', function (event) {
+    var tileElement = event.target.closest('.tile');
+    if (tileElement) {
+      var position = tileElement.getAttribute('data-position');
+      var [x, y] = position.split(',').map(Number);
+      self.emit('tileClick', { x, y });
+    }
+  });
+
+  // Update tile position attribute when tiles move
+  var originalAddTile = actuator.addTile;
+  actuator.addTile = function (tile) {
+    originalAddTile.call(actuator, tile);
+    var tileElement = document.querySelector(`.tile-position-${tile.x + 1}-${tile.y + 1}`);
+    if (tileElement) {
+      tileElement.setAttribute('data-position', `${tile.x},${tile.y}`);
+    }
+  };
+
+  // Add prop button click listeners
+  var propButtons = document.querySelectorAll('.prop');
+  propButtons.forEach(button => {
+    button.addEventListener('click', function() {
+      var propName = this.getAttribute('data-prop');
+      self.emit('propClick', propName);
+    });
+  });
+
+  // Add tile click listeners for prop selection
+  var tileContainer = document.querySelector('.tile-container');
+  tileContainer.addEventListener('click', function(event) {
+    var tileElement = event.target.closest('.tile');
+    if (tileElement) {
+      var position = tileElement.getAttribute('data-position');
+      if (position) {
+        var [x, y] = position.split(',').map(Number);
+        self.emit('tileClick', { x, y });
+      }
+    }
+  });
+
   gameContainer.addEventListener(this.eventTouchstart, function (event) {
     if ((!window.navigator.msPointerEnabled && event.touches.length > 1) ||
         event.targetTouches.length > 1) {
