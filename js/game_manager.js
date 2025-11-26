@@ -15,6 +15,11 @@ function GameManager(size, InputManager, Actuator, StorageManager) {
 
 // Restart the game
 GameManager.prototype.restart = function () {
+  // Add current score to cumulative total
+  if (this.score > 0) {
+    var currentCumulative = parseInt(this.storageManager.getCumulativeTotalScore());
+    this.storageManager.setCumulativeTotalScore(currentCumulative + this.score);
+  }
   this.storageManager.clearGameState();
   this.actuator.continueGame(); // Clear the game won/lost message
   this.setup();
@@ -54,6 +59,17 @@ GameManager.prototype.setup = function () {
     this.addStartTiles();
   }
 
+  // Initialize achievement tracking variables
+  this.achievements = this.storageManager.getAchievements();
+  this.currentMaxTile = this.getMaxTileValue();
+  this.moveCount = 0;
+  this.consecutiveMerges = 0;
+  this.consecutiveMergesStart = Date.now();
+  this.startTime = Date.now();
+  this.usedDirections = new Set();
+  this.gameStart = true;
+  this.perfectStartCount = 0;
+
   // Update the actuator
   this.actuate();
 };
@@ -66,14 +82,7 @@ GameManager.prototype.addStartTiles = function () {
 };
 
 // Adds a tile in a random position
-GameManager.prototype.addRandomTile = function () {
-  if (this.grid.cellsAvailable()) {
-    var value = Math.random() < 0.9 ? 2 : 4;
-    var tile = new Tile(this.grid.randomAvailableCell(), value);
 
-    this.grid.insertTile(tile);
-  }
-};
 
 // Sends the updated grid to the actuator
 GameManager.prototype.actuate = function () {
@@ -93,7 +102,8 @@ GameManager.prototype.actuate = function () {
     over:       this.over,
     won:        this.won,
     bestScore:  this.storageManager.getBestScore(),
-    terminated: this.isGameTerminated()
+    terminated: this.isGameTerminated(),
+    achievements: this.achievements
   });
 
 };
@@ -138,6 +148,7 @@ GameManager.prototype.move = function (direction) {
   var vector     = this.getVector(direction);
   var traversals = this.buildTraversals(vector);
   var moved      = false;
+  var merged     = false;
 
   // Save the current tile positions and remove merger information
   this.prepareTiles();
@@ -154,20 +165,32 @@ GameManager.prototype.move = function (direction) {
 
         // Only one merger per row traversal?
         if (next && next.value === tile.value && !next.mergedFrom) {
-          var merged = new Tile(positions.next, tile.value * 2);
-          merged.mergedFrom = [tile, next];
+          var mergedTile = new Tile(positions.next, tile.value * 2);
+          mergedTile.mergedFrom = [tile, next];
 
-          self.grid.insertTile(merged);
+          self.grid.insertTile(mergedTile);
           self.grid.removeTile(tile);
 
           // Converge the two tiles' positions
           tile.updatePosition(positions.next);
 
           // Update the score
-          self.score += merged.value;
+          self.score += mergedTile.value;
+
+          // Check for milestone achievements
+          self.checkMilestoneAchievements(mergedTile.value);
+
+          // Check for四面楚歌 achievement
+          self.checkSurroundedAchievement(mergedTile);
+
+          // Check for险中求胜 achievement
+          self.checkDesperateVictoryAchievement(mergedTile.value);
+
+          // Increment consecutive merges
+          merged = true;
 
           // The mighty 2048 tile
-          if (merged.value === 2048) self.won = true;
+          if (mergedTile.value === 2048) self.won = true;
         } else {
           self.moveTile(tile, positions.farthest);
         }
@@ -180,12 +203,70 @@ GameManager.prototype.move = function (direction) {
   });
 
   if (moved) {
-    this.addRandomTile();
+    this.moveCount++;
+    this.usedDirections.add(direction);
 
-    if (!this.movesAvailable()) {
-      this.over = true; // Game over!
+    // Update cumulative achievements
+    this.updateCumulativeAchievements();
+
+    // Check for consecutive merges
+    if (merged) {
+      var now = Date.now();
+      if (now - this.consecutiveMergesStart <= 10000) { // 10 seconds
+        this.consecutiveMerges++;
+        this.checkComboAchievement();
+      } else {
+        this.consecutiveMerges = 1;
+        this.consecutiveMergesStart = now;
+      }
+    } else {
+      this.consecutiveMerges = 0;
     }
 
+    // Check for完美开局 achievement
+    if (this.gameStart && this.moveCount <= 10) {
+      this.perfectStartCount++;
+      if (this.getMaxTileValue() < 16) {
+        this.checkPerfectStartAchievement();
+      } else {
+        this.gameStart = false;
+      }
+    } else if (this.moveCount > 10) {
+      this.gameStart = false;
+    }
+
+    // Add random tile and update current max tile
+    var newTileValue = this.addRandomTile();
+    if (newTileValue === 4) {
+      this.achievements.幸运眷顾.progress++;
+      if (!this.achievements.幸运眷顾.unlocked && this.achievements.幸运眷顾.progress >= this.achievements.幸运眷顾.max) {
+        this.achievements.幸运眷顾.unlocked = true;
+      }
+    }
+    this.currentMaxTile = this.getMaxTileValue();
+
+    // Check for清道夫 achievement
+    this.checkCleanupAchievement();
+
+    // Check for布局之美 achievement
+    this.checkLayoutBeautyAchievement();
+
+    // Check for滴水不漏 achievement
+    this.checkNoLeakAchievement();
+
+    // Check if game over
+        if (!this.movesAvailable()) {
+          this.over = true; // Game over!
+          // Add current score to cumulative total
+          var currentCumulative = parseInt(this.storageManager.getCumulativeTotalScore());
+          this.storageManager.setCumulativeTotalScore(currentCumulative + this.score);
+          this.checkGameOverAchievement();
+        }
+
+    // Update achievements storage
+    this.storageManager.setAchievements(this.achievements);
+
+    // Update the actuator
     this.actuate();
   }
 };
@@ -269,4 +350,263 @@ GameManager.prototype.tileMatchesAvailable = function () {
 
 GameManager.prototype.positionsEqual = function (first, second) {
   return first.x === second.x && first.y === second.y;
+};
+
+// Helper method to get the maximum tile value on the grid
+GameManager.prototype.getMaxTileValue = function () {
+  var maxValue = 0;
+  this.grid.eachCell(function (x, y, tile) {
+    if (tile && tile.value > maxValue) {
+      maxValue = tile.value;
+    }
+  });
+  return maxValue;
+};
+
+// Update cumulative achievements
+GameManager.prototype.updateCumulativeAchievements = function () {
+  // 勤奋耕耘: 累计滑动操作次数达到5000次
+  this.achievements.勤奋耕耘.progress++;
+  if (!this.achievements.勤奋耕耘.unlocked && this.achievements.勤奋耕耘.progress >= this.achievements.勤奋耕耘.max) {
+    this.achievements.勤奋耕耘.unlocked = true;
+  }
+
+  // 巨额财富: 累计游戏总得分达到1000000分
+    var cumulativeTotal = parseInt(this.storageManager.getCumulativeTotalScore());
+    // Add current game's score to cumulative total for progress display
+    this.achievements.巨额财富.progress = cumulativeTotal + this.score;
+    if (!this.achievements.巨额财富.unlocked && (cumulativeTotal + this.score) >= this.achievements.巨额财富.max) {
+      this.achievements.巨额财富.unlocked = true;
+    }
+};
+
+// Check milestone achievements (数字里程碑)
+GameManager.prototype.checkMilestoneAchievements = function (value) {
+  // 初窥门径: 合成512
+  if (value === 512 && !this.achievements.初窥门径.unlocked) {
+    this.achievements.初窥门径.unlocked = true;
+  }
+
+  // 融会贯通: 合成1024
+  if (value === 1024 && !this.achievements.融会贯通.unlocked) {
+    this.achievements.融会贯通.unlocked = true;
+    // Check for速战速决 achievement
+    var elapsedTime = Date.now() - this.startTime;
+    if (elapsedTime <= 120000) { // 2 minutes
+      this.achievements.速战速决.unlocked = true;
+    }
+  }
+
+  // 登峰造极: 合成2048
+  if (value === 2048 && !this.achievements.登峰造极.unlocked) {
+    this.achievements.登峰造极.unlocked = true;
+    // Update十战十胜 achievement
+    this.achievements.十战十胜.progress++;
+    if (!this.achievements.十战十胜.unlocked && this.achievements.十战十胜.progress >= this.achievements.十战十胜.max) {
+      this.achievements.十战十胜.unlocked = true;
+    }
+  }
+
+  // 超越极限: 合成4096
+  if (value === 4096 && !this.achievements.超越极限.unlocked) {
+    this.achievements.超越极限.unlocked = true;
+  }
+
+  // 神乎其技: 合成8192
+  if (value === 8192 && !this.achievements.神乎其技.unlocked) {
+    this.achievements.神乎其技.unlocked = true;
+  }
+
+  // 合并狂人: 累计合成512方块50次
+  if (value === 512) {
+    this.achievements.合并狂人.progress++;
+    if (!this.achievements.合并狂人.unlocked && this.achievements.合并狂人.progress >= this.achievements.合并狂人.max) {
+      this.achievements.合并狂人.unlocked = true;
+    }
+  }
+
+  // Check for单极制霸 achievement
+  if (value === 1024 && this.usedDirections.size <= 2 && !this.achievements.单极制霸.unlocked) {
+    this.achievements.单极制霸.unlocked = true;
+  }
+};
+
+// Check combo achievement (连击高手)
+GameManager.prototype.checkComboAchievement = function () {
+  if (this.consecutiveMerges >= 5 && !this.achievements.连击高手.unlocked) {
+    this.achievements.连击高手.unlocked = true;
+  }
+};
+
+// Check perfect start achievement (完美开局)
+GameManager.prototype.checkPerfectStartAchievement = function () {
+  if (this.perfectStartCount >= 10 && !this.achievements.完美开局.unlocked) {
+    this.achievements.完美开局.unlocked = true;
+  }
+};
+
+// Check surrounded achievement (四面楚歌)
+GameManager.prototype.checkSurroundedAchievement = function (tile) {
+  var x = tile.x;
+  var y = tile.y;
+  var size = this.grid.size;
+
+  // Check all four adjacent cells
+  var adjacentCells = [
+    { x: x - 1, y: y }, // Left
+    { x: x + 1, y: y }, // Right
+    { x: x, y: y - 1 }, // Up
+    { x: x, y: y + 1 }  // Down
+  ];
+
+  var allSurrounded = true;
+  for (var i = 0; i < adjacentCells.length; i++) {
+    var cell = adjacentCells[i];
+    if (cell.x < 0 || cell.x >= size || cell.y < 0 || cell.y >= size) {
+      // Out of bounds, not surrounded
+      allSurrounded = false;
+      break;
+    }
+    var adjacentTile = this.grid.cellContent(cell);
+    if (!adjacentTile || adjacentTile.value <= 8) {
+      // No tile or tile value <=8, not surrounded
+      allSurrounded = false;
+      break;
+    }
+  }
+
+  if (allSurrounded && !this.achievements.四面楚歌.unlocked) {
+    this.achievements.四面楚歌.unlocked = true;
+  }
+};
+
+// Check cleanup achievement (清道夫)
+GameManager.prototype.checkCleanupAchievement = function () {
+  var size = this.grid.size;
+  var rows = [];
+  var cols = [];
+
+  // Initialize rows and cols arrays
+  for (var i = 0; i < size; i++) {
+    rows[i] = true;
+    cols[i] = true;
+  }
+
+  // Check each cell
+  for (var x = 0; x < size; x++) {
+    for (var y = 0; y < size; y++) {
+      if (this.grid.cellContent({ x: x, y: y })) {
+        rows[y] = false;
+        cols[x] = false;
+      }
+    }
+  }
+
+  // Check if any row or column is completely empty
+  var isCleanup = rows.some(function (isEmpty) { return isEmpty; }) || cols.some(function (isEmpty) { return isEmpty; });
+  if (isCleanup && !this.achievements.清道夫.unlocked) {
+    this.achievements.清道夫.unlocked = true;
+  }
+};
+
+// Check layout beauty achievement (布局之美)
+GameManager.prototype.checkLayoutBeautyAchievement = function () {
+  var size = this.grid.size;
+  var totalCells = size * size;
+  var filledCells = 0;
+  var maxValue = 0;
+  var maxPosition = null;
+
+  // Count filled cells and find max tile
+  for (var x = 0; x < size; x++) {
+    for (var y = 0; y < size; y++) {
+      var tile = this.grid.cellContent({ x: x, y: y });
+      if (tile) {
+        filledCells++;
+        if (tile.value > maxValue) {
+          maxValue = tile.value;
+          maxPosition = { x: x, y: y };
+        }
+      }
+    }
+  }
+
+  // Check if at least 80% filled
+  if (filledCells / totalCells >= 0.8 && maxPosition) {
+    // Check if max tile is at corner
+    var isCorner = (maxPosition.x === 0 && maxPosition.y === 0) ||
+                   (maxPosition.x === size - 1 && maxPosition.y === 0) ||
+                   (maxPosition.x === 0 && maxPosition.y === size - 1) ||
+                   (maxPosition.x === size - 1 && maxPosition.y === size - 1);
+    if (isCorner && !this.achievements.布局之美.unlocked) {
+      this.achievements.布局之美.unlocked = true;
+    }
+  }
+};
+
+// Check no leak achievement (滴水不漏)
+GameManager.prototype.checkNoLeakAchievement = function () {
+  var size = this.grid.size;
+  var totalCells = size * size;
+  var filledCells = 0;
+  var maxValue = 0;
+
+  // Count filled cells and find max tile
+  for (var x = 0; x < size; x++) {
+    for (var y = 0; y < size; y++) {
+      var tile = this.grid.cellContent({ x: x, y: y });
+      if (tile) {
+        filledCells++;
+        if (tile.value > maxValue) {
+          maxValue = tile.value;
+        }
+      }
+    }
+  }
+
+  // Check if all cells are filled and max value < 1024
+  if (filledCells === totalCells && maxValue < 1024 && !this.achievements.滴水不漏.unlocked) {
+    this.achievements.滴水不漏.unlocked = true;
+  }
+};
+
+// Check desperate victory achievement (险中求胜)
+GameManager.prototype.checkDesperateVictoryAchievement = function (value) {
+  var size = this.grid.size;
+  var totalCells = size * size;
+  var filledCells = 0;
+
+  // Count filled cells
+  for (var x = 0; x < size; x++) {
+    for (var y = 0; y < size; y++) {
+      if (this.grid.cellContent({ x: x, y: y })) {
+        filledCells++;
+      }
+    }
+  }
+
+  // Check conditions: score < 500, filled cells >= 14, and just merged 256
+  if (this.score < 500 && filledCells >= 14 && value === 256 && !this.achievements.险中求胜.unlocked) {
+    this.achievements.险中求胜.unlocked = true;
+  }
+};
+
+// Check game over achievement (失败乃成功之母)
+GameManager.prototype.checkGameOverAchievement = function () {
+  this.achievements.失败乃成功之母.progress++;
+  if (!this.achievements.失败乃成功之母.unlocked && this.achievements.失败乃成功之母.progress >= this.achievements.失败乃成功之母.max) {
+    this.achievements.失败乃成功之母.unlocked = true;
+  }
+};
+
+// Modify addRandomTile to return the value of the added tile
+GameManager.prototype.addRandomTile = function () {
+  if (this.grid.cellsAvailable()) {
+    var value = Math.random() < 0.9 ? 2 : 4;
+    var tile = new Tile(this.grid.randomAvailableCell(), value);
+
+    this.grid.insertTile(tile);
+    return value;
+  }
+  return null;
 };

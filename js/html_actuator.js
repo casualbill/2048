@@ -3,6 +3,7 @@ function HTMLActuator() {
   this.scoreContainer   = document.querySelector(".score-container");
   this.bestContainer    = document.querySelector(".best-container");
   this.messageContainer = document.querySelector(".game-message");
+  this.achievementsContainer = document.querySelector(".achievements-container");
 
   this.score = 0;
 }
@@ -23,6 +24,7 @@ HTMLActuator.prototype.actuate = function (grid, metadata) {
 
     self.updateScore(metadata.score);
     self.updateBestScore(metadata.bestScore);
+    self.updateAchievements(metadata.achievements);
 
     if (metadata.terminated) {
       if (metadata.over) {
@@ -136,4 +138,36 @@ HTMLActuator.prototype.clearMessage = function () {
   // IE only takes one value to remove at a time.
   this.messageContainer.classList.remove("game-won");
   this.messageContainer.classList.remove("game-over");
+};
+
+HTMLActuator.prototype.updateAchievements = function (achievements) {
+  if (!this.achievementsContainer) return;
+
+  this.clearContainer(this.achievementsContainer);
+
+  // Create achievements list
+  var achievementsList = document.createElement("ul");
+  achievementsList.classList.add("achievements-list");
+
+  // Add each achievement to the list
+  for (var key in achievements) {
+    if (achievements.hasOwnProperty(key)) {
+      var achievement = achievements[key];
+      var achievementItem = document.createElement("li");
+      achievementItem.classList.add("achievement-item");
+      if (achievement.unlocked) {
+        achievementItem.classList.add("achievement-unlocked");
+      }
+
+      achievementItem.innerHTML = `
+        <div class="achievement-name">${key}</div>
+        <div class="achievement-criteria">${achievement.criteria}</div>
+        ${achievement.progress > 0 && !achievement.unlocked ? `<div class="achievement-progress">${achievement.progress}/${achievement.max}</div>` : ""}
+      `;
+
+      achievementsList.appendChild(achievementItem);
+    }
+  }
+
+  this.achievementsContainer.appendChild(achievementsList);
 };
