@@ -28,8 +28,16 @@
 
     <div class="above-game">
       <p class="game-intro">Join the numbers and get to the <strong>2048 tile!</strong></p>
+      <div class="mode-selector">
+        <label><input type="radio" name="game-mode" value="normal" checked> 普通模式</label>
+        <label><input type="radio" name="game-mode" value="event"> 事件模式</label>
+        <label><input type="radio" name="game-mode" value="doom"> 厄运模式</label>
+      </div>
       <a class="restart-button">New Game</a>
     </div>
+    
+    <div class="event-message"></div>
+    <div class="freeze-buttons"></div>
 
     <div class="game-container">
       <div class="game-message">
@@ -70,6 +78,10 @@
       <div class="tile-container">
 
       </div>
+      
+      <div class="event-message"></div>
+      
+      <div class="freeze-buttons-container"></div>
     </div>
 
     <p class="game-explanation">
