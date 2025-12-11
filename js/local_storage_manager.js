@@ -44,6 +44,32 @@ LocalStorageManager.prototype.getBestScore = function () {
   return this.storage.getItem(this.bestScoreKey) || 0;
 };
 
+LocalStorageManager.prototype.getLeaderboard = function () {
+  var leaderboard = this.storage.getItem(this.storageKey + "leaderboard");
+  return leaderboard ? JSON.parse(leaderboard) : [];
+};
+
+LocalStorageManager.prototype.addToLeaderboard = function (score, eventCount, duration) {
+  var leaderboard = this.getLeaderboard();
+  leaderboard.push({
+    score: score,
+    events: eventCount,
+    duration: duration,
+    date: new Date().toISOString()
+  });
+  
+  // Keep only top 10 entries
+  leaderboard.sort(function (a, b) {
+    return b.score - a.score;
+  });
+  
+  if (leaderboard.length > 10) {
+    leaderboard = leaderboard.slice(0, 10);
+  }
+  
+  this.storage.setItem(this.storageKey + "leaderboard", JSON.stringify(leaderboard));
+};
+
 LocalStorageManager.prototype.setBestScore = function (score) {
   this.storage.setItem(this.bestScoreKey, score);
 };
