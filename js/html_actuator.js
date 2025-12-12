@@ -58,6 +58,7 @@ HTMLActuator.prototype.addTile = function (tile) {
   var classes = ["tile", "tile-" + tile.value, positionClass];
 
   if (tile.value > 2048) classes.push("tile-super");
+  if (tile.isDynamic) classes.push("tile-dynamic"); // Add special class for dynamic tiles
 
   this.applyClasses(wrapper, classes);
 

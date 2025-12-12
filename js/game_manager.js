@@ -54,6 +54,14 @@ GameManager.prototype.setup = function () {
     this.addStartTiles();
   }
 
+  // Count dynamic tiles
+  this.dynamicTileCount = 0;
+  this.grid.eachCell(function (x, y, tile) {
+    if (tile && tile.isDynamic) {
+      this.dynamicTileCount++;
+    }
+  }.bind(this));
+
   // Update the actuator
   this.actuate();
 };
@@ -72,6 +80,17 @@ GameManager.prototype.addRandomTile = function () {
     var tile = new Tile(this.grid.randomAvailableCell(), value);
 
     this.grid.insertTile(tile);
+  }
+};
+
+// Adds a dynamic tile in a random position
+GameManager.prototype.addDynamicTile = function () {
+  if (this.grid.cellsAvailable()) {
+    var value = Math.floor(Math.random() * 10) + 1; // Random value between 1 and 10
+    var tile = new Tile(this.grid.randomAvailableCell(), value, true);
+
+    this.grid.insertTile(tile);
+    this.dynamicTileCount++;
   }
 };
 
@@ -153,9 +172,30 @@ GameManager.prototype.move = function (direction) {
         var next      = self.grid.cellContent(positions.next);
 
         // Only one merger per row traversal?
-        if (next && next.value === tile.value && !next.mergedFrom) {
+        var canMerge = false;
+        if (next) { // Check if next tile exists
+          if (tile.isDynamic && next.isDynamic) {
+            // Both are dynamic tiles, can only merge if value is 2, 4, or 8
+            canMerge = next.value === tile.value && [2, 4, 8].indexOf(tile.value) !== -1;
+          } else if (!tile.isDynamic && !next.isDynamic) {
+            // Both are normal tiles, can merge if values are equal
+            canMerge = next.value === tile.value;
+          }
+          // Cannot merge dynamic and normal tiles
+        }
+        if (canMerge && !next.mergedFrom) {
           var merged = new Tile(positions.next, tile.value * 2);
           merged.mergedFrom = [tile, next];
+
+          // Stop dynamic updates if merging dynamic tiles
+          if (tile.isDynamic) {
+            tile.stopDynamicUpdate();
+            self.dynamicTileCount--;
+          }
+          if (next.isDynamic) {
+            next.stopDynamicUpdate();
+            self.dynamicTileCount--;
+          }
 
           self.grid.insertTile(merged);
           self.grid.removeTile(tile);
@@ -168,6 +208,11 @@ GameManager.prototype.move = function (direction) {
 
           // The mighty 2048 tile
           if (merged.value === 2048) self.won = true;
+
+          // 10% chance to generate a dynamic tile after merge
+          if (Math.random() < 0.1 && self.dynamicTileCount < 3) {
+            self.addDynamicTile();
+          }
         } else {
           self.moveTile(tile, positions.farthest);
         }
@@ -256,8 +301,19 @@ GameManager.prototype.tileMatchesAvailable = function () {
 
           var other  = self.grid.cellContent(cell);
 
-          if (other && other.value === tile.value) {
-            return true; // These two tiles can be merged
+          if (other) {
+            var canMerge = false;
+            if (tile.isDynamic && other.isDynamic) {
+              // Both are dynamic tiles, can only merge if values are equal and in [2, 4, 8]
+              canMerge = other.value === tile.value && [2, 4, 8].indexOf(tile.value) !== -1;
+            } else if (!tile.isDynamic && !other.isDynamic) {
+              // Both are normal tiles, can merge if values are equal
+              canMerge = other.value === tile.value;
+            }
+            // Cannot merge dynamic and normal tiles
+            if (canMerge) {
+              return true; // These two tiles can be merged
+            }
           }
         }
       }
