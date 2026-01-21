@@ -198,8 +198,9 @@ hr {
       color: #f9f6f2; }
       .game-container .game-message.game-won a.keep-playing-button {
         display: inline-block; }
-    .game-container .game-message.game-won, .game-container .game-message.game-over {
-      display: block; }
+    .game-container .game-message.game-won, .game-container .game-message.game-over, .game-container .game-message.mode-selection {
+      display: block;
+    }
 
 .grid-container {
   position: absolute;
@@ -226,7 +227,31 @@ hr {
 
 .tile-container {
   position: absolute;
-  z-index: 2; }
+  z-index: 2;
+}
+
+.wall-container {
+  position: absolute;
+  z-index: 3;
+  width: 100%;
+  height: 100%;
+}
+
+.wall {
+  position: absolute;
+  background-color: #000;
+  z-index: 3;
+}
+
+.wall-horizontal {
+  height: 12px; /* 80% of cell border width (15px) */
+  background-color: #000;
+}
+
+.wall-vertical {
+  width: 12px; /* 80% of cell border width (15px) */
+  background-color: #000;
+}
 
 .tile, .tile .tile-inner {
   width: 107px;

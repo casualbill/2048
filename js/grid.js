@@ -1,6 +1,7 @@
-function Grid(size, previousState) {
+function Grid(size, previousState, walls) {
   this.size = size;
   this.cells = previousState ? this.fromState(previousState) : this.empty();
+  this.walls = walls || [];
 }
 
 // Build a grid of the specified size
@@ -99,6 +100,65 @@ Grid.prototype.withinBounds = function (position) {
          position.y >= 0 && position.y < this.size;
 };
 
+Grid.prototype.hasHorizontalWall = function (x, y, direction) {
+  for (var i = 0; i < this.walls.length; i++) {
+    var wall = this.walls[i];
+    if (wall.type === 'horizontal') {
+      // 检查墙体是否阻挡了向上移动（方向为上时，墙体在当前单元格下方）
+      if (direction === 'up' && wall.y === y + 1 && wall.x <= x && x < wall.x + wall.length) {
+        return true;
+      }
+      // 检查墙体是否阻挡了向下移动（方向为下时，墙体在当前单元格上方）
+      if (direction === 'down' && wall.y === y && wall.x <= x && x < wall.x + wall.length) {
+        return true;
+      }
+    }
+  }
+  return false;
+};
+
+Grid.prototype.hasVerticalWall = function (x, y, direction) {
+  for (var i = 0; i < this.walls.length; i++) {
+    var wall = this.walls[i];
+    if (wall.type === 'vertical') {
+      // 检查墙体是否阻挡了向左移动（方向为左时，墙体在当前单元格右侧）
+      if (direction === 'left' && wall.x === x + 1 && wall.y <= y && y < wall.y + wall.length) {
+        return true;
+      }
+      // 检查墙体是否阻挡了向右移动（方向为右时，墙体在当前单元格左侧）
+      if (direction === 'right' && wall.x === x && wall.y <= y && y < wall.y + wall.length) {
+        return true;
+      }
+    }
+  }
+  return false;
+};
+
+Grid.prototype.hasWall = function (from, to) {
+  var vector = { x: to.x - from.x, y: to.y - from.y };
+  
+  if (vector.x === 1) { // 向右移动
+    return this.hasVerticalWall(from.x, from.y, 'right');
+  } else if (vector.x === -1) { // 向左移动
+    return this.hasVerticalWall(from.x, from.y, 'left');
+  } else if (vector.y === 1) { // 向下移动
+    return this.hasHorizontalWall(from.x, from.y, 'down');
+  } else if (vector.y === -1) { // 向上移动
+    return this.hasHorizontalWall(from.x, from.y, 'up');
+  }
+  return false;
+};
+
+Grid.prototype.addWall = function (wall) {
+  this.walls.push(wall);
+};
+
+Grid.prototype.removeWall = function (wallIndex) {
+  if (wallIndex >= 0 && wallIndex < this.walls.length) {
+    this.walls.splice(wallIndex, 1);
+  }
+};
+
 Grid.prototype.serialize = function () {
   var cellState = [];
 
@@ -112,6 +172,7 @@ Grid.prototype.serialize = function () {
 
   return {
     size: this.size,
-    cells: cellState
+    cells: cellState,
+    walls: this.walls
   };
 };
