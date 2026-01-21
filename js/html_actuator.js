@@ -3,8 +3,17 @@ function HTMLActuator() {
   this.scoreContainer   = document.querySelector(".score-container");
   this.bestContainer    = document.querySelector(".best-container");
   this.messageContainer = document.querySelector(".game-message");
+  this.gameContainer    = document.querySelector(".game-container");
+  this.wallContainer    = document.querySelector(".wall-container");
 
   this.score = 0;
+
+  // Create wall container if it doesn't exist
+  if (!this.wallContainer) {
+    this.wallContainer = document.createElement("div");
+    this.wallContainer.className = "wall-container";
+    this.gameContainer.appendChild(this.wallContainer);
+  }
 }
 
 HTMLActuator.prototype.actuate = function (grid, metadata) {
@@ -12,6 +21,7 @@ HTMLActuator.prototype.actuate = function (grid, metadata) {
 
   window.requestAnimationFrame(function () {
     self.clearContainer(self.tileContainer);
+    self.clearContainer(self.wallContainer);
 
     grid.cells.forEach(function (column) {
       column.forEach(function (cell) {
@@ -20,6 +30,13 @@ HTMLActuator.prototype.actuate = function (grid, metadata) {
         }
       });
     });
+
+    // Render walls if in maze mode
+    if (metadata.gameMode === 'maze' && grid.walls) {
+      grid.walls.forEach(function (wall) {
+        self.addWall(wall);
+      });
+    }
 
     self.updateScore(metadata.score);
     self.updateBestScore(metadata.bestScore);
@@ -136,4 +153,43 @@ HTMLActuator.prototype.clearMessage = function () {
   // IE only takes one value to remove at a time.
   this.messageContainer.classList.remove("game-won");
   this.messageContainer.classList.remove("game-over");
+};
+
+HTMLActuator.prototype.addWall = function (wall) {
+  var wallElement = document.createElement("div");
+  var classes = ["wall"];
+  
+  // Add direction class
+  classes.push("wall-" + wall.direction);
+  
+  // Calculate wall position and size
+  var gridSize = 4;
+  var cellSize = 106.25; // Size of each cell including margin
+  var wallWidth = 10; // 80% of cell border width (12.5px)
+  var margin = 15;
+  
+  var x, y, width, height;
+  
+  if (wall.direction === "horizontal") {
+    // Horizontal wall
+    x = margin + wall.x * cellSize;
+    y = margin + wall.y * cellSize - wallWidth / 2;
+    width = wall.length * cellSize;
+    height = wallWidth;
+  } else {
+    // Vertical wall
+    x = margin + wall.x * cellSize - wallWidth / 2;
+    y = margin + wall.y * cellSize;
+    width = wallWidth;
+    height = wall.length * cellSize;
+  }
+  
+  // Apply styles
+  wallElement.style.left = x + "px";
+  wallElement.style.top = y + "px";
+  wallElement.style.width = width + "px";
+  wallElement.style.height = height + "px";
+  
+  this.applyClasses(wallElement, classes);
+  this.wallContainer.appendChild(wallElement);
 };

@@ -5,10 +5,12 @@ function GameManager(size, InputManager, Actuator, StorageManager) {
   this.actuator       = new Actuator;
 
   this.startTiles     = 2;
+  this.gameMode       = "classic"; // "classic" or "maze"
 
   this.inputManager.on("move", this.move.bind(this));
   this.inputManager.on("restart", this.restart.bind(this));
   this.inputManager.on("keepPlaying", this.keepPlaying.bind(this));
+  this.inputManager.on("changeMode", this.changeMode.bind(this));
 
   this.setup();
 }
@@ -38,11 +40,12 @@ GameManager.prototype.setup = function () {
   // Reload the game from a previous game if present
   if (previousState) {
     this.grid        = new Grid(previousState.grid.size,
-                                previousState.grid.cells); // Reload grid
+                                previousState.grid); // Reload grid with walls
     this.score       = previousState.score;
     this.over        = previousState.over;
     this.won         = previousState.won;
     this.keepPlaying = previousState.keepPlaying;
+    this.gameMode    = previousState.gameMode || "classic";
   } else {
     this.grid        = new Grid(this.size);
     this.score       = 0;
@@ -50,12 +53,23 @@ GameManager.prototype.setup = function () {
     this.won         = false;
     this.keepPlaying = false;
 
+    // Generate walls for maze mode
+    if (this.gameMode === "maze") {
+      this.grid.generateWalls();
+    }
+
     // Add the initial tiles
     this.addStartTiles();
   }
 
   // Update the actuator
   this.actuate();
+};
+
+// Change game mode
+GameManager.prototype.changeMode = function (mode) {
+  this.gameMode = mode;
+  this.restart();
 };
 
 // Set up the initial tiles to start the game with
@@ -77,8 +91,8 @@ GameManager.prototype.addRandomTile = function () {
 
 // Sends the updated grid to the actuator
 GameManager.prototype.actuate = function () {
-  if (this.storageManager.getBestScore() < this.score) {
-    this.storageManager.setBestScore(this.score);
+  if (this.storageManager.getBestScore(this.gameMode) < this.score) {
+    this.storageManager.setBestScore(this.score, this.gameMode);
   }
 
   // Clear the state when the game is over (game over only, not win)
@@ -92,8 +106,9 @@ GameManager.prototype.actuate = function () {
     score:      this.score,
     over:       this.over,
     won:        this.won,
-    bestScore:  this.storageManager.getBestScore(),
-    terminated: this.isGameTerminated()
+    bestScore:  this.storageManager.getBestScore(this.gameMode),
+    terminated: this.isGameTerminated(),
+    gameMode:   this.gameMode
   });
 
 };
@@ -105,7 +120,8 @@ GameManager.prototype.serialize = function () {
     score:       this.score,
     over:        this.over,
     won:         this.won,
-    keepPlaying: this.keepPlaying
+    keepPlaying: this.keepPlaying,
+    gameMode:    this.gameMode
   };
 };
 
@@ -226,6 +242,10 @@ GameManager.prototype.findFarthestPosition = function (cell, vector) {
   do {
     previous = cell;
     cell     = { x: previous.x + vector.x, y: previous.y + vector.y };
+    // Check if there's a wall between current and next cell
+    if (this.grid.hasWallBetween(previous, cell)) {
+      break;
+    }
   } while (this.grid.withinBounds(cell) &&
            this.grid.cellAvailable(cell));
 
@@ -256,7 +276,8 @@ GameManager.prototype.tileMatchesAvailable = function () {
 
           var other  = self.grid.cellContent(cell);
 
-          if (other && other.value === tile.value) {
+          // Check if the other tile exists, has the same value, and there's no wall between them
+          if (other && other.value === tile.value && !self.grid.hasWallBetween({ x: x, y: y }, cell)) {
             return true; // These two tiles can be merged
           }
         }
