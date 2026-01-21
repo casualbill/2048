@@ -3,16 +3,59 @@ function HTMLActuator() {
   this.scoreContainer   = document.querySelector(".score-container");
   this.bestContainer    = document.querySelector(".best-container");
   this.messageContainer = document.querySelector(".game-message");
+  this.gridContainer    = document.querySelector(".grid-container");
+  this.wallContainer    = document.createElement("div");
+  this.wallContainer.className = "wall-container";
+  this.gridContainer.appendChild(this.wallContainer);
 
   this.score = 0;
 }
+
+HTMLActuator.prototype.showModeSelection = function () {
+  // Clear any existing messages
+  this.clearMessage();
+  this.clearContainer(this.tileContainer);
+  
+  // Create mode selection message
+  var message = "Choose Game Mode";
+  var classicButton = "Classic Mode";
+  var mazeButton = "Maze Mode";
+  
+  this.messageContainer.classList.add("mode-selection");
+  this.messageContainer.getElementsByTagName("p")[0].textContent = message;
+  
+  var lower = this.messageContainer.querySelector(".lower");
+  lower.innerHTML = "";
+  
+  // Create classic mode button
+  var classicButtonEl = document.createElement("a");
+  classicButtonEl.className = "classic-mode-button button";
+  classicButtonEl.textContent = classicButton;
+  classicButtonEl.addEventListener("click", function () {
+    window.dispatchEvent(new CustomEvent("selectMode", { detail: "classic" }));
+  });
+  lower.appendChild(classicButtonEl);
+  
+  // Create maze mode button
+  var mazeButtonEl = document.createElement("a");
+  mazeButtonEl.className = "maze-mode-button button";
+  mazeButtonEl.textContent = mazeButton;
+  mazeButtonEl.addEventListener("click", function () {
+    window.dispatchEvent(new CustomEvent("selectMode", { detail: "maze" }));
+  });
+  lower.appendChild(mazeButtonEl);
+  
+  this.messageContainer.style.display = "block";
+};
 
 HTMLActuator.prototype.actuate = function (grid, metadata) {
   var self = this;
 
   window.requestAnimationFrame(function () {
     self.clearContainer(self.tileContainer);
+    self.clearContainer(self.wallContainer);
 
+    // Render tiles
     grid.cells.forEach(function (column) {
       column.forEach(function (cell) {
         if (cell) {
@@ -20,6 +63,11 @@ HTMLActuator.prototype.actuate = function (grid, metadata) {
         }
       });
     });
+
+    // Render walls for maze mode
+    if (metadata.mode === 'maze' && grid.walls) {
+      self.renderWalls(grid.walls);
+    }
 
     self.updateScore(metadata.score);
     self.updateBestScore(metadata.bestScore);
@@ -33,6 +81,48 @@ HTMLActuator.prototype.actuate = function (grid, metadata) {
     }
 
   });
+};
+
+// Render walls on the grid
+HTMLActuator.prototype.renderWalls = function (walls) {
+  var self = this;
+  
+  walls.forEach(function (wall) {
+    var wallElement = document.createElement("div");
+    wallElement.className = "wall wall-" + wall.type;
+    
+    // Calculate wall position and size
+    var cellSize = 100 / self.gridSize();
+    var wallWidth = cellSize * wall.length;
+    var wallThickness = cellSize * 0.2; // 20% of cell size
+    var x, y;
+    
+    if (wall.type === 'horizontal') {
+      // Horizontal wall (between rows)
+      x = wall.x * cellSize;
+      y = (wall.y + 1) * cellSize - wallThickness / 2;
+      wallElement.style.width = wallWidth + "%";
+      wallElement.style.height = wallThickness + "%";
+    } else {
+      // Vertical wall (between columns)
+      x = (wall.x + 1) * cellSize - wallThickness / 2;
+      y = wall.y * cellSize;
+      wallElement.style.width = wallThickness + "%";
+      wallElement.style.height = wallWidth + "%";
+    }
+    
+    // Set wall position
+    wallElement.style.left = x + "%";
+    wallElement.style.top = y + "%";
+    
+    self.wallContainer.appendChild(wallElement);
+  });
+};
+
+// Get grid size
+HTMLActuator.prototype.gridSize = function () {
+  // For a 4x4 grid, return 4
+  return 4;
 };
 
 // Continues the game (both restart and keep playing)
@@ -136,4 +226,5 @@ HTMLActuator.prototype.clearMessage = function () {
   // IE only takes one value to remove at a time.
   this.messageContainer.classList.remove("game-won");
   this.messageContainer.classList.remove("game-over");
+  this.messageContainer.classList.remove("mode-selection");
 };

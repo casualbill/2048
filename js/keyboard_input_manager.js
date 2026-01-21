@@ -33,6 +33,11 @@ KeyboardInputManager.prototype.emit = function (event, data) {
 
 KeyboardInputManager.prototype.listen = function () {
   var self = this;
+  
+  // Listen for mode selection
+  window.addEventListener("selectMode", function (event) {
+    self.emit("selectMode", event.detail);
+  });
 
   var map = {
     38: 0, // Up
