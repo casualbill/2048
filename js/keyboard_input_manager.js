@@ -72,6 +72,17 @@ KeyboardInputManager.prototype.listen = function () {
   this.bindButtonPress(".retry-button", this.restart);
   this.bindButtonPress(".restart-button", this.restart);
   this.bindButtonPress(".keep-playing-button", this.keepPlaying);
+  
+  // Respond to mode selection
+  this.bindButtonPress(".classic-mode-button", function(event) {
+    event.preventDefault();
+    this.emit("changeMode", "classic");
+  }.bind(this));
+  
+  this.bindButtonPress(".maze-mode-button", function(event) {
+    event.preventDefault();
+    this.emit("changeMode", "maze");
+  }.bind(this));
 
   // Respond to swipe events
   var touchStartClientX, touchStartClientY;
